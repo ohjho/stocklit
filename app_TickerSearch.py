@@ -4,6 +4,7 @@ import numpy as np
 from settings import GetVar
 from utils import JsonLookUp
 from func.alphavantage import TickerSearch
+from func.st_utils import print_logo
 
 def SymbolSearch(keyword, alphavantage_key = None):
     alphavantage_key = alphavantage_key if alphavantage_key else GetVar("alpha_vantage_api_key")
@@ -34,11 +35,7 @@ def SymbolSearch(keyword, alphavantage_key = None):
         st.json( out_syms)
 
 def Main():
-    # For Multi App, see
-    # https://discuss.streamlit.io/t/multiple-apps-from-a-folder-file-list/181/4
-    logo_url = "https://pbs.twimg.com/profile_images/824272617066692608/qbrXbQX_.jpg"
-    logo_url = 'ot_logo_.png'
-    st.sidebar.image(logo_url, width = 100)
+    print_logo()
     st.sidebar.header("Ticker Search/ Symbol Lookup")
     st.sidebar.info('''
     brought to you by [Alpha Vantage](https://www.alphavantage.co/documentation/), get your free API key [here](https://www.alphavantage.co/support/#api-key)
