@@ -1,4 +1,5 @@
-config.yml
+configs.yml
+jupyter/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
