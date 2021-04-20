@@ -2,7 +2,10 @@ import streamlit as st
 import os, sys
 
 from toolbox.st_utils import show_logo
-from apps.yahoo_finance import Main as yf_app
+from apps.stock_desc import Main as Desc
+
+# TODO:
+# add user tracking https://github.com/jrieke/streamlit-analytics
 
 def Main():
 	st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -19,7 +22,7 @@ def Main():
 		''')
 
 	app_dict = {
-		"stock price (by yfinance)": yf_app
+		"stock DESC": Desc
 	}
 
 	app_sw = st.sidebar.selectbox('select app', options = [''] + list(app_dict.keys()))

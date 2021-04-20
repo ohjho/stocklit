@@ -4,10 +4,16 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+def valid_stock(stock_obj):
+    try:
+        stock_obj.info
+        return True
+    except:
+        return False
+
 def Main():
-    # st.header("yfinance")
     ticker = st.text_input('enter a stock ticker')
-    with st.sidebar.beta_expander("yfinance"):
+    with st.sidebar.beta_expander("DESC"):
         st.info(f'''
             Historical Stock Price by [yfinance](https://github.com/ranaroussi/yfinance)
             * [yahoo finance ticker lookup](https://finance.yahoo.com/lookup)
@@ -27,8 +33,12 @@ def Main():
             col1 = col2 = st.beta_container()
 
         stock = yf.Ticker(ticker)
+        if not valid_stock(stock):
+            st.error(f'Cannot find `{ticker}`')
+            return None
 
         #TODO:
+        # 1: add volume to price chart https://stackoverflow.com/questions/64689342/plotly-how-to-add-volume-to-a-candlestick-chart
         # 4. Download price DF
 
         with col1:
