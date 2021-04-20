@@ -13,6 +13,9 @@ def Main():
 	with st.sidebar.beta_expander("OpenTerminal"):
 		st.info(f'''
 		[information symmetry](https://en.wikipedia.org/wiki/Information_asymmetry) for all
+
+		*	[project page](https://github.com/ohjho/open_terminal)
+		*	[issues tracking](https://github.com/ohjho/open_terminal/issues)
 		''')
 
 	app_dict = {
