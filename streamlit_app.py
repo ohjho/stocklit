@@ -3,6 +3,7 @@ import os, sys
 
 from toolbox.st_utils import show_logo
 from apps.stock_desc import Main as Desc
+from apps.stock_returns import Main as RT
 
 # TODO:
 # add user tracking https://github.com/jrieke/streamlit-analytics
@@ -22,7 +23,8 @@ def Main():
 		''')
 
 	app_dict = {
-		"stock DESC": Desc
+		"stock DESC": Desc,
+		"stock RT": RT,
 	}
 
 	app_sw = st.sidebar.selectbox('select app', options = [''] + list(app_dict.keys()))

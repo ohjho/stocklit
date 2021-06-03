@@ -4,13 +4,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-def valid_stock(stock_obj):
-    try:
-        stock_obj.info
-        return True
-    except:
-        return False
-
+from toolbox.yf_utils import valid_stock
+    
 def Main():
     ticker = st.text_input('enter a stock ticker')
     with st.sidebar.beta_expander("DESC"):
