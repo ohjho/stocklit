@@ -2,10 +2,10 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 from toolbox.yf_utils import valid_stock
-    
+from toolbox.plotly_utils import plotly_ohlc_chart
+
 def Main():
     ticker = st.text_input('enter a stock ticker')
     with st.sidebar.beta_expander("DESC"):
@@ -16,9 +16,11 @@ def Main():
         ''')
 
     if ticker:
+        ticker = ticker.split('.')[0].zfill(4) + '.HK' if '.HK' in ticker.upper() else ticker
         side_config = st.sidebar.beta_expander('configure', expanded = True)
         with side_config:
-            show_ohlc = st.checkbox('ohlc chart')
+            show_ohlc = st.checkbox('ohlc chart', value = True)
+            show_volume = st.checkbox('show volume')
             b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
 
@@ -33,7 +35,6 @@ def Main():
             return None
 
         #TODO:
-        # 1: add volume to price chart https://stackoverflow.com/questions/64689342/plotly-how-to-add-volume-to-a-candlestick-chart
         # 4. Download price DF
 
         with col1:
@@ -51,12 +52,7 @@ def Main():
 
             with st.beta_expander('Price Chart', expanded = True):
                 if show_ohlc:
-                    fig = go.Figure(data= go.Ohlc(x = df_all.index,
-                                        open= df_all['Open'],
-                                        high= df_all['High'],
-                                        low= df_all['Low'],
-                                        close= df_all['Close'])
-                                    )
+                    fig = plotly_ohlc_chart(df = df_all, vol_col = 'Volume' if show_volume else None)
                 else:
                     fig = px.line(df_all, y = 'Close',
                         color_discrete_sequence = ["#b58900"])
