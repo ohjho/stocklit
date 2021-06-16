@@ -82,7 +82,8 @@ def plot_returns(df_returns, df_prices, target_ticker,
                 'Date': df_prices.index
                 }
             )
-            fig = plotly_ohlc_chart(df_plot, vol_col = 'Volume', date_col = 'Date', show_legend = False)
+            fig = plotly_ohlc_chart(df_plot, vol_col = 'Volume', date_col = 'Date',
+                show_legend = False, show_volume_profile = False)
         else:
             fig = px.line(df_prices['Adj Close'], y = target_ticker,
                     color_discrete_sequence = ["#b58900"])
@@ -97,13 +98,25 @@ def plot_returns(df_returns, df_prices, target_ticker,
         plotly_hist_draw_hline(fig, l_value_format = [{'value': v} for v in [two_stdv, -two_stdv]])
         show_plotly(fig, height = chart_size)
 
-        # cumulative returns
-        fig = px.line((df_returns+1).cumprod(), y = target_ticker,
-                title = f'growtht of $1 invested in {target_ticker} on {df_returns.index[0]}',
-                labels = {target_ticker: f'{target_ticker} cumulative returns'},
-                color_discrete_sequence = ["#b58900"]
-                )
-        show_plotly(fig, height = chart_size)
+        if show_ohlc:
+            #cumulative returns
+            fig = px.line((df_returns+1).cumprod(), y = target_ticker,
+                    title = f'growtht of $1 invested in {target_ticker} on {df_returns.index[0]}',
+                    labels = {target_ticker: f'{target_ticker} cumulative returns'},
+                    color_discrete_sequence = ["#b58900"]
+                    )
+            show_plotly(fig, height = chart_size)
+        else:
+            # volume at price
+            # https://medium.com/swlh/how-to-analyze-volume-profiles-with-python-3166bb10ff24
+            idx = pd.IndexSlice
+            df_vp = df_prices.loc[:, idx[['Adj Close', 'Volume'],target_ticker]]
+            df_vp.columns = ['Adj Close', 'Volume']
+
+            fig = px.histogram(df_vp, y = 'Adj Close', x = 'Volume',
+                    orientation = 'h', nbins = 100, color_discrete_sequence = ["#b58900"]
+                    )
+            show_plotly(fig, height = chart_size, title = f'Volume-At-Price: {target_ticker}')
 
 def Main():
     with st.sidebar.beta_expander("RT"):
@@ -128,6 +141,8 @@ def Main():
 
         l_interval = ['1d','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1wk','1mo','3mo']
         interval = st.selectbox('interval', options = l_interval)
+        if interval.endswith(('m','h')):
+            st.warning(f'intraday data cannot extend last 60 days')
 
     if tickers:
         side_config = st.sidebar.beta_expander('charts configure', expanded = False)
@@ -136,8 +151,8 @@ def Main():
             # b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
 
-        if len(tickers.split())==1:
-            st.warning(f'This function works best with more than one tickers. Some features below might not render...')
+        # if len(tickers.split())==1:
+        #     st.warning(f'This function works best with more than one tickers. Some features below might not render...')
 
         data_dict = get_yf_data(tickers, start_date = start_date, end_date = end_date, interval = interval)
         data = data_dict['prices'].copy()
@@ -152,15 +167,21 @@ def Main():
         l_tickers = df_return.columns.tolist()
         if len(l_tickers) != len(tickers.split(' ')):
             st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
+        single_ticker = len(l_tickers) == 1
 
         l_col , r_col = st.beta_columns(2)
         with l_col:
-            target_ticker = st.selectbox('Analyze', options = [''] + l_tickers)
+            target_ticker = st.selectbox('Analyze', options = l_tickers if single_ticker else [''] + l_tickers)
 
         if target_ticker:
             with r_col:
                 with st.beta_expander(f'{target_ticker} descriptive stats'):
                     st.write(df_return[target_ticker].describe())
+
+            if single_ticker:
+                tmp_idx = pd.MultiIndex.from_tuples([(col, target_ticker) for col in data.columns], names = ['variable', 'ticker'])
+                data.columns = tmp_idx
+
             plot_returns(df_returns = df_return, df_prices = data,
                 target_ticker = target_ticker, chart_size = chart_size, show_ohlc=show_ohlc)
         else:
