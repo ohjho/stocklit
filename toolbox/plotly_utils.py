@@ -47,7 +47,7 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
                        row = 2, col = 1)
         fig.update(layout_xaxis_rangeslider_visible=False)
     else:
-        fig = go.Figure(data= go.Ohlc(x = date_serie,
+        fig = go.Figure(data= go.Candlestick(x = date_serie,
                             open= df[ohlc_col_map['o']],
                             high= df[ohlc_col_map['h']],
                             low= df[ohlc_col_map['l']],

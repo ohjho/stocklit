@@ -1,10 +1,12 @@
 import yfinance as yf
 import pandas as pd
+from tqdm import tqdm
 
-# for caching yfinance results
+# TODO: for caching yfinance results
+# this is an open issue for the Ticker method: https://github.com/ranaroussi/yfinance/issues/677
 import requests_cache
-session = requests_cache.CachedSession('yfinance.cache')
-session.headers['User-agent'] = 'my-program/1.0'
+SESH = requests_cache.CachedSession('yfinance.cache')
+SESH.headers['User-agent'] = 'my-program/1.0'
 
 def valid_stock(stock_obj):
     '''
@@ -16,7 +18,7 @@ def valid_stock(stock_obj):
     except:
         return False
 
-def get_stocks_data(tickers, session = session,
+def get_stocks_data(tickers, session = SESH,
         yf_download_params = {"period": '1y', "group_by": "column" , "interval": "1d"}
         ):
     '''
@@ -25,7 +27,7 @@ def get_stocks_data(tickers, session = session,
     Args:
         yf_download_params: passed straight to yf.download, see https://github.com/ranaroussi/yfinance
     '''
-    prices_df = yf.download(tickers = tickers, **yf_download_params)
+    prices_df = yf.download(tickers = tickers, session = SESH, **yf_download_params)
     returns_df = prices_df['Adj Close'].pct_change()[1:]
     if len(tickers.split())> 1:
         col_with_returns = [col for col in returns_df.columns
@@ -39,3 +41,24 @@ def get_stocks_data(tickers, session = session,
         'prices': prices_df,
         'returns': returns_df
     }
+
+def get_stocks_obj(tickers, session = SESH, tqdm_func = tqdm):
+    tickers_obj = yf.Tickers(tickers)
+    return tickers_obj.tickers
+    # return [yf.Ticker(t)
+    #     for t in tqdm_func(tickers.split(), desc = "Creating Ticker Object")
+    #     ]
+
+def get_stocks_info(tickers, tqdm_func = tqdm):
+    '''
+    returns a list of dictionary for each ticker
+    '''
+    tickers_obj = get_stocks_obj(tickers)
+    # print(tickers_obj)
+    # tickers_obj : dict {'ticker': yfinance.Ticker object,...}
+
+    # TODO: add try-except & retry
+    results = [ {k: v for k, v in t.info.items()}
+        for t in tqdm_func(tickers_obj.values(), desc = "Getting stocks info")
+    ]
+    return results

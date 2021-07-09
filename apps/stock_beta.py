@@ -12,7 +12,7 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import get_stocks_data
 from toolbox.data_utils import JsonLookUp
-from apps.hld import get_index_members, STOCK_UNIVERSE
+from apps.stock_members import get_index_members, STOCK_UNIVERSE
 
 @st.cache
 def get_yf_data(tickers, start_date, end_date, interval, group_by = 'column'):
@@ -52,7 +52,7 @@ def Main():
             Beta Analysis vs Benchmark Security:
 
             * data by [yfinance](https://github.com/ranaroussi/yfinance)
-            * sharpe ratio per [this kaggle noteboo](https://www.kaggle.com/dimkapoulas/the-sharpe-ratio)
+            * sharpe ratio per [this kaggle notebook](https://www.kaggle.com/dimkapoulas/the-sharpe-ratio)
         ''')
 
     with st.sidebar.beta_expander('Load an Index', expanded = True):

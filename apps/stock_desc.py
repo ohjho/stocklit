@@ -20,7 +20,7 @@ def Main():
         side_config = st.sidebar.beta_expander('configure', expanded = True)
         with side_config:
             show_ohlc = st.checkbox('ohlc chart', value = True)
-            show_volume = st.checkbox('show volume')
+            show_volume = st.checkbox('show volume', value = True)
             b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
 
@@ -35,18 +35,22 @@ def Main():
             return None
 
         #TODO:
+        # 1. show key keys info
+        # 2. add twitter & NewsAPI
         # 4. Download price DF
 
         with col1:
             stock_info = stock.info
-            with st.beta_expander(f'Stock Info for {stock_info["shortName"]}'):
-                st.write(stock_info['longBusinessSummary'])
+            with st.beta_expander(f'Stock Info for {stock_info["longName"]}'):
+                str_desc = f'[:link:]({stock_info["website"]}) ' if 'website' in stock_info.keys() else ''
+                str_desc += stock_info["longBusinessSummary"]
+                st.write(f'{str_desc}')
                 if st.checkbox('show info JSON'):
                     st.json(stock_info)
 
             df_all = stock.history(period = "max")
             with side_config:
-                number_td = st.number_input("Number of trading days", value = 250,
+                number_td = st.number_input("Number of trading days", value = min(250, len(df_all)),
                                 min_value = 5, max_value = len(df_all))
             df_all = df_all.tail(number_td)
 
