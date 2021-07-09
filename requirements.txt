@@ -15,4 +15,5 @@ businessdate==0.5
 # plotting
 mplfinance==0.12.0a3
 plotly==4.14.3
-ta-lib>=0.4.20
+# ta-lib requires special handling
+#ta-lib>=0.4.20
