@@ -18,6 +18,24 @@ def valid_stock(stock_obj):
     except:
         return False
 
+def tickers_parser(tickers, return_list = False, max_items = None):
+    '''
+    parse a string of space separated tickers with special handling for HK tickers
+    Args:
+        return_list: return a list object if true else a space separated string
+        max_items: maximum number of items to return if given otherwise return all
+    '''
+    if tickers:
+        l_tickers = tickers.split()
+        l_tickers = [ ticker.split('.')[0].zfill(4) + '.HK' if '.HK' in ticker.upper() else ticker
+            for ticker in l_tickers ]
+
+        l_tickers = l_tickers[:max_items] if max_items else l_tickers
+
+        return l_tickers if return_list else " ".join(l_tickers)
+    else:
+        return None
+
 def get_stocks_data(tickers, session = SESH,
         yf_download_params = {"period": '1y', "group_by": "column" , "interval": "1d"}
         ):

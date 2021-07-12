@@ -3,11 +3,11 @@ import yfinance as yf
 import pandas as pd
 import plotly.express as px
 
-from toolbox.yf_utils import valid_stock
+from toolbox.yf_utils import valid_stock, tickers_parser
 from toolbox.plotly_utils import plotly_ohlc_chart
 
 def Main():
-    ticker = st.text_input('enter a stock ticker')
+    ticker = tickers_parser(st.text_input('enter a stock ticker'), max_items = 1)
     with st.sidebar.beta_expander("DESC"):
         st.info(f'''
             Historical Stock Price by [yfinance](https://github.com/ranaroussi/yfinance)
@@ -16,7 +16,7 @@ def Main():
         ''')
 
     if ticker:
-        ticker = ticker.split('.')[0].zfill(4) + '.HK' if '.HK' in ticker.upper() else ticker
+        # ticker = ticker.split('.')[0].zfill(4) + '.HK' if '.HK' in ticker.upper() else ticker
         side_config = st.sidebar.beta_expander('configure', expanded = True)
         with side_config:
             show_ohlc = st.checkbox('ohlc chart', value = True)

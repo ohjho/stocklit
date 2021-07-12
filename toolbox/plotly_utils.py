@@ -3,7 +3,7 @@ from plotly.subplots import make_subplots
 
 def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile = False,
         ohlc_col_map = {'o':'Open', 'h':'High', 'l': 'Low', 'c':'Close'},
-        show_legend = True
+        show_legend = True, show_range_slider = True
     ):
     '''
     return a fig object with a ohlc plot
@@ -53,5 +53,8 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
                             low= df[ohlc_col_map['l']],
                             close= df[ohlc_col_map['c']])
                         )
+        if not show_range_slider:
+            fig.update_layout(xaxis_rangeslider_visible=False)
+
     #TODO: hide range outside trading hours: https://stackoverflow.com/a/65632833/14285096
     return fig

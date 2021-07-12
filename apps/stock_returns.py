@@ -6,7 +6,7 @@ import plotly.express as px
 from businessdate import BusinessDate
 
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.yf_utils import get_stocks_data
+from toolbox.yf_utils import tickers_parser, get_stocks_data
 from toolbox.plotly_utils import plotly_ohlc_chart
 
 @st.cache
@@ -23,100 +23,101 @@ def compare_returns(df_returns, df_prices, chart_size = 500):
     l_tickers = df_returns.columns.tolist()
     l_col , r_col = st.beta_columns(2)
 
-    with l_col:
-        # returns
-        fig = px.line(df_returns, y = df_returns.columns.tolist(),
-                    title = f'stock returns'
-                    )
-        show_plotly(fig, height=chart_size)
-
-    with r_col:
-        # return dist
-        fig = px.histogram(df_returns, y = l_tickers,
-            opacity = 0.8,
-            title = f'returns distribution')
-        show_plotly(fig, height = chart_size)
-
-    with l_col: # cumulative returns
-        fig = px.line((df_returns+1).cumprod(), y = df_returns.columns.tolist(),
-                title = f'growtht of $1 invested on {df_returns.index[0]}',
-                labels = {'value': f'cumulative returns'},
-                # color_discrete_sequence = ["#b58900"]
+    # returns
+    fig = px.line(df_returns, y = df_returns.columns.tolist(),
+                title = f'stock returns'
                 )
-        show_plotly(fig, height = chart_size)
+    show_plotly(fig, height=chart_size, st_asset = l_col)
 
-    with r_col:
-        # TODO: compare volume
-        for t in l_tickers:
-            df_prices['Dollar_Traded', t] = df_prices['Volume', t] * df_prices['Adj Close', t]
+    # return dist
+    fig = px.histogram(df_returns, y = l_tickers,
+        opacity = 0.8,
+        title = f'returns distribution')
+    show_plotly(fig, height = chart_size, st_asset = r_col)
 
-        fig = px.line(df_prices['Dollar_Traded'], y = l_tickers,
-                title = f'Dollar Traded',
-                labels = {'value': f'Dollar Traded'},
-                # color_discrete_sequence = ["#b58900"]
-                )
-        show_plotly(fig, height = chart_size)
+    # cumulative returns
+    fig = px.line((df_returns+1).cumprod(), y = df_returns.columns.tolist(),
+            title = f'growtht of $1 invested on {df_returns.index[0]}',
+            labels = {'value': f'cumulative returns'},
+            # color_discrete_sequence = ["#b58900"]
+            )
+    show_plotly(fig, height = chart_size, st_asset = l_col)
+
+    # compare volume
+    for t in l_tickers:
+        df_prices['Dollar_Traded', t] = df_prices['Volume', t] * df_prices['Adj Close', t]
+
+    fig = px.line(df_prices['Dollar_Traded'], y = l_tickers,
+            title = f'Dollar Traded',
+            labels = {'value': f'Dollar Traded'},
+            # color_discrete_sequence = ["#b58900"]
+            )
+    show_plotly(fig, height = chart_size, st_asset = r_col)
 
 def plot_returns(df_returns, df_prices, target_ticker,
     chart_size = 500, show_ohlc = True):
     '''
     plot target_ticker returns in ST using PX
     '''
+    # TODO: remove show_ohlc arg
     l_col , r_col = st.beta_columns(2)
-    with l_col:
-        # returns
-        fig = px.line(df_returns, y = target_ticker,
-                    title = f'{target_ticker} returns',
-                    color_discrete_sequence = ["#b58900"],
-                    )
-        show_plotly(fig, height=chart_size)
 
-        # simple price chart
-        if show_ohlc:
-            df_plot = pd.DataFrame(
-                {'Open': df_prices['Open'][target_ticker],
-                'High': df_prices['High'][target_ticker],
-                'Low': df_prices['Low'][target_ticker],
-                'Close': df_prices['Close'][target_ticker],
-                'Volume': df_prices['Volume'][target_ticker],
-                'Date': df_prices.index
-                }
+    # returns
+    fig = px.line(df_returns, y = target_ticker,
+                title = f'{target_ticker} returns',
+                color_discrete_sequence = ["#b58900"],
+                )
+    show_plotly(fig, height=chart_size, st_asset = l_col)
+
+    # simple price chart
+    # if show_ohlc:
+    df_plot = pd.DataFrame(
+        {'Open': df_prices['Open'][target_ticker],
+        'High': df_prices['High'][target_ticker],
+        'Low': df_prices['Low'][target_ticker],
+        'Close': df_prices['Close'][target_ticker],
+        'Volume': df_prices['Volume'][target_ticker],
+        'Date': df_prices.index
+        }
+    )
+    #     fig = plotly_ohlc_chart(df_plot, vol_col = 'Volume', date_col = 'Date',
+    #         show_legend = False, show_volume_profile = False)
+    fig = plotly_ohlc_chart(df_plot, date_col = 'Date',
+            show_legend = False, show_volume_profile = False,
+            show_range_slider = False)
+    # else:
+    #     fig = px.line(df_prices['Adj Close'], y = target_ticker,
+    #             color_discrete_sequence = ["#b58900"])
+    show_plotly(fig, height = chart_size, title=f'price of {target_ticker}',
+                st_asset = l_col)
+
+    # return dist
+    fig = px.histogram(df_returns, y = target_ticker,
+        color_discrete_sequence = ["#b58900"],
+        title = f'{target_ticker} returns distribution (with 2stdv lines)')
+    two_stdv = df_returns[target_ticker].mean() + df_returns[target_ticker].std() * 2
+    plotly_hist_draw_hline(fig, l_value_format = [{'value': v} for v in [two_stdv, -two_stdv]])
+    show_plotly(fig, height = chart_size, st_asset = r_col)
+
+    # if show_ohlc:
+    #     #cumulative returns
+    #     fig = px.line((df_returns+1).cumprod(), y = target_ticker,
+    #             title = f'growtht of $1 invested in {target_ticker} on {df_returns.index[0]}',
+    #             labels = {target_ticker: f'{target_ticker} cumulative returns'},
+    #             color_discrete_sequence = ["#b58900"]
+    #             )
+    #     show_plotly(fig, height = chart_size)
+    # else:
+    # volume at price
+    # https://medium.com/swlh/how-to-analyze-volume-profiles-with-python-3166bb10ff24
+    idx = pd.IndexSlice
+    df_vp = df_prices.loc[:, idx[['Adj Close', 'Volume'],target_ticker]]
+    df_vp.columns = ['Adj Close', 'Volume']
+
+    fig = px.histogram(df_vp, y = 'Adj Close', x = 'Volume', title = f'Volume-at-price: {target_ticker}',
+            orientation = 'h', nbins = 100, color_discrete_sequence = ["#b58900"]
             )
-            fig = plotly_ohlc_chart(df_plot, vol_col = 'Volume', date_col = 'Date',
-                show_legend = False, show_volume_profile = False)
-        else:
-            fig = px.line(df_prices['Adj Close'], y = target_ticker,
-                    color_discrete_sequence = ["#b58900"])
-        show_plotly(fig, height = chart_size, title=f'price of {target_ticker}')
-
-    with r_col:
-        # return dist
-        fig = px.histogram(df_returns, y = target_ticker,
-            color_discrete_sequence = ["#b58900"],
-            title = f'{target_ticker} returns distribution (with 2stdv lines)')
-        two_stdv = df_returns[target_ticker].mean() + df_returns[target_ticker].std() * 2
-        plotly_hist_draw_hline(fig, l_value_format = [{'value': v} for v in [two_stdv, -two_stdv]])
-        show_plotly(fig, height = chart_size)
-
-        if show_ohlc:
-            #cumulative returns
-            fig = px.line((df_returns+1).cumprod(), y = target_ticker,
-                    title = f'growtht of $1 invested in {target_ticker} on {df_returns.index[0]}',
-                    labels = {target_ticker: f'{target_ticker} cumulative returns'},
-                    color_discrete_sequence = ["#b58900"]
-                    )
-            show_plotly(fig, height = chart_size)
-        else:
-            # volume at price
-            # https://medium.com/swlh/how-to-analyze-volume-profiles-with-python-3166bb10ff24
-            idx = pd.IndexSlice
-            df_vp = df_prices.loc[:, idx[['Adj Close', 'Volume'],target_ticker]]
-            df_vp.columns = ['Adj Close', 'Volume']
-
-            fig = px.histogram(df_vp, y = 'Adj Close', x = 'Volume',
-                    orientation = 'h', nbins = 100, color_discrete_sequence = ["#b58900"]
-                    )
-            show_plotly(fig, height = chart_size, title = f'Volume-At-Price: {target_ticker}')
+    show_plotly(fig, height = chart_size, st_asset = r_col)
 
 def Main():
     with st.sidebar.beta_expander("RT"):
@@ -128,7 +129,7 @@ def Main():
             * inspired by this [blog post](https://www.codingfinance.com/post/2018-04-03-calc-returns-py/)
         ''')
 
-    tickers = st.text_input('enter stock ticker(s) [space separated]')
+    tickers = tickers_parser(st.text_input('enter stock ticker(s) [space separated]'))
     with st.sidebar.beta_expander('settings', expanded = True):
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
@@ -147,7 +148,7 @@ def Main():
     if tickers:
         side_config = st.sidebar.beta_expander('charts configure', expanded = False)
         with side_config:
-            show_ohlc = st.checkbox('ohlc chart', value = True)
+            # show_ohlc = st.checkbox('ohlc chart', value = True)
             # b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
 
@@ -183,7 +184,7 @@ def Main():
                 data.columns = tmp_idx
 
             plot_returns(df_returns = df_return, df_prices = data,
-                target_ticker = target_ticker, chart_size = chart_size, show_ohlc=show_ohlc)
+                target_ticker = target_ticker, chart_size = chart_size)
         else:
             compare_returns(df_returns = df_return, df_prices = data,
                 chart_size = chart_size)

@@ -13,12 +13,12 @@ def show_logo(st_asset = st.sidebar, use_column_width = False, width = 100):
     logo_url = "https://raw.githubusercontent.com/ohjho/open_terminal/master/asset/ot_logo.png"
     st_asset.image(logo_url, width = width, use_column_width = use_column_width)
 
-def show_plotly(fig, height = None, title = None, template = 'plotly_dark'):
+def show_plotly(fig, height = None, title = None, template = 'plotly_dark', st_asset = st):
     params = {'height': height, 'title': title, 'template': template}
     params = {k:v for k,v in params.items() if v}
 
     fig.update_layout(params)
-    st.plotly_chart(fig, use_container_width = True, height = height)
+    st_asset.plotly_chart(fig, use_container_width = True, height = height)
 
 def plotly_hist_draw_hline(fig, l_value_format):
     '''

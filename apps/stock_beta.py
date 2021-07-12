@@ -10,7 +10,7 @@ from businessdate import BusinessDate
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.yf_utils import get_stocks_data
+from toolbox.yf_utils import tickers_parser, get_stocks_data
 from toolbox.data_utils import JsonLookUp
 from apps.stock_members import get_index_members, STOCK_UNIVERSE
 
@@ -66,8 +66,10 @@ def Main():
                 Found {len(l_members)} index members and reference security: {ref_security}
             ''')
 
-    tickers = st.text_input('enter stock ticker(s) [space separated]',
-                value = ref_security + " " + " ".join(l_members) if idx else '')
+    tickers = tickers_parser(
+                st.text_input('enter stock ticker(s) [space separated]',
+                    value = ref_security + " " + " ".join(l_members) if idx else '')
+                )
     with st.sidebar.beta_expander('settings', expanded = False):
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
