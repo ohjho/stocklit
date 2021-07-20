@@ -1,3 +1,4 @@
+import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -11,11 +12,16 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
     '''
     date_serie = df[date_col] if date_col else df.index
     if vol_col:
+        row_count = 2
+        row_count += 1 if "MACD_histogram" in df.columns else 0
+        row_count += 1 if "A/D" in df.columns else 0
+        row_count += 1 if "OBV" in df.columns else 0
+        row_heights = [0.7] + [0.2 for i in range(row_count-1)]
         # Create figure with secondary y-axis
-        fig = make_subplots(rows = 2, cols = 1, shared_xaxes= True,
+        fig = make_subplots(rows = row_count, cols = 1, shared_xaxes= True,
                 vertical_spacing= 0.03,
                 subplot_titles = ['OHLC','Volume'] if not show_legend else None,
-                row_width = [0.2,0.7])
+                row_heights = row_heights)
 
 
 
@@ -55,6 +61,32 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
                         )
         if not show_range_slider:
             fig.update_layout(xaxis_rangeslider_visible=False)
+
+    # check for TA to add
+    ma_cols = [c for c in df.columns if '_' in c and c.split('_')[0] in ['ema', 'sma', 'vwap']]
+    if len(ma_cols)> 0:
+        for ma in ma_cols:
+            fig.add_trace(go.Scatter(x = df.index, y = df[ma], name = ma),
+                    row = 1, col = 1 )
+
+    # Check for additional TA subplots
+    ref_row = 2 if vol_col else 1
+    if 'MACD_histogram' in df.columns:
+        ref_row += 1
+        fig.append_trace(go.Bar(x = df.index, y = df['MACD_histogram'], name = 'MACD_histogram'),
+            row = ref_row, col = 1)
+        # fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal'),
+        #     row = 3, col = 1)
+
+    if 'A/D' in df.columns:
+        ref_row += 1
+        fig.append_trace(go.Scatter(x = df.index, y = df['A/D'], name = 'A/D'),
+            row = ref_row, col = 1)
+
+    if 'OBV' in df.columns:
+        ref_row += 1
+        fig.append_trace(go.Scatter(x = df.index, y = df['OBV'], name = 'OBV'),
+            row = ref_row, col = 1)
 
     #TODO: hide range outside trading hours: https://stackoverflow.com/a/65632833/14285096
     return fig

@@ -20,3 +20,15 @@ textColor = "#fafafa"
 # Accepted values (serif | sans serif | monospace)
 # Default: "sans serif"
 font = "sans serif"
+
+# Blue & Yellow
+# [theme]
+# primaryColor="#fffd21"
+# backgroundColor="#35729a"
+# secondaryBackgroundColor="#012358"
+# textColor="#fafafa"
+# font="sans serif"
+
+# inspirations:
+# https://www.canva.com/learn/website-color-schemes/
+# https://colorpalettes.net/tag/blue-and-yellow/

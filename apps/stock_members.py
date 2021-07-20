@@ -184,44 +184,8 @@ def Main():
         st.subheader(f'Members of `{idx}`')
         data = get_members_info_df(asset = tickers.split(), l_keys=['symbol'] + l_keys)
         st.dataframe(data, height = df_height)
-    # if tickers:
-    #     side_config = st.sidebar.beta_expander('charts configure', expanded = False)
-    #     with side_config:
-    #         show_ohlc = st.checkbox('ohlc chart', value = True)
-    #         # b_two_col = st.checkbox('two-column view', value = True)
-    #         chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
-    #
-    #
-    #     data_dict = get_yf_data(tickers, start_date = start_date, end_date = end_date, interval = interval)
-    #     df_returns = data_dict['returns'].copy()
-    #
-    #     with st.beta_expander('view returns data'):
-    #         st.subheader('Returns')
-    #         st.write(df_returns)
-    #
-    #     l_tickers = df_returns.columns.tolist()
-    #     if len(l_tickers) != len(tickers.split(' ')):
-    #         st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
-    #
-    #     l_col, r_col = st.beta_columns(2)
-    #     with l_col:
-    #         benchmark_ticker = st.selectbox('benchmark security', options = tickers.split())
-    #         beta_json = get_betas(df_returns, benchmark_col = benchmark_ticker.upper())
-    #         # TODO: add dividend yield?
-    #         beta_df = pd.DataFrame.from_dict(beta_json)
-    #     with r_col:
-    #         plot_var_options = [col for col in beta_df.columns if col not in ['ticker']]
-    #         y_var = st.selectbox('y-axis variable', options = plot_var_options)
-    #         x_var = st.selectbox('x-axis variable', options = plot_var_options)
-    #
-    #     with st.beta_expander('Betas Calcuation'):
-    #         st.write(beta_df)
-    #
-    #     fig = px.scatter(beta_df, x = x_var, y = y_var, color = 'ticker')
-    #     fig.update_layout(showlegend = False)
-    #     show_plotly(fig)
-    #
-    #     #TODO: individual stock shows beta vs return over time
+
+        # TODO: ticker selector to return a space-separated string for use in other apps
 
 if __name__ == '__main__':
     Main()

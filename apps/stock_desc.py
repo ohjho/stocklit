@@ -42,8 +42,10 @@ def Main():
         with col1:
             stock_info = stock.info
             with st.beta_expander(f'Stock Info for {stock_info["longName"]}'):
-                str_desc = f'[:link:]({stock_info["website"]}) ' if 'website' in stock_info.keys() else ''
-                str_desc += stock_info["longBusinessSummary"]
+                str_desc = f'[:link:]({stock_info["website"]}) ' \
+                            if 'website' in stock_info.keys() else ''
+                str_desc += stock_info["longBusinessSummary"] \
+                            if "longBusinessSummary" in stock_info.keys() else ":warning: Business Summary not available"
                 st.write(f'{str_desc}')
                 if st.checkbox('show info JSON'):
                     st.json(stock_info)

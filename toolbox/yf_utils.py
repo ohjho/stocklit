@@ -31,6 +31,7 @@ def tickers_parser(tickers, return_list = False, max_items = None):
             for ticker in l_tickers ]
 
         l_tickers = l_tickers[:max_items] if max_items else l_tickers
+        l_tickers = [t.upper() for t in l_tickers]
 
         return l_tickers if return_list else " ".join(l_tickers)
     else:
@@ -59,6 +60,19 @@ def get_stocks_data(tickers, session = SESH,
         'prices': prices_df,
         'returns': returns_df
     }
+
+def get_dfs_by_tickers(df):
+    '''
+    return a dictionary of {ticker:df,...}
+    '''
+    assert isinstance(df.columns, pd.MultiIndex), "this function only works with DF with MultiIndex Columns"
+    data_col = set([c[0] for c in df.columns])
+    tickers = set([c[1] for c in df.columns])
+
+    l_DFs = [df[[(c,t) for c in data_col]] for t in tickers]
+    for df in l_DFs:
+        df.columns = df.columns.droplevel(1)
+    return {t:df for t, df in zip(tickers, l_DFs)}
 
 def get_stocks_obj(tickers, session = SESH, tqdm_func = tqdm):
     tickers_obj = yf.Tickers(tickers)

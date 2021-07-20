@@ -55,6 +55,7 @@ def Main():
             * sharpe ratio per [this kaggle notebook](https://www.kaggle.com/dimkapoulas/the-sharpe-ratio)
         ''')
 
+    # TODO: Disable this to avoid loading too much data by default (force users to select stocks from MEMBERS)
     with st.sidebar.beta_expander('Load an Index', expanded = True):
         l_indices = [d['index'] for d in STOCK_UNIVERSE]
         idx = st.selectbox('Index', options = [''] + l_indices)
