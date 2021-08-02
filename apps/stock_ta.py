@@ -9,8 +9,8 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser
-from toolbox.plotly_utils import plotly_ohlc_chart
-from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV
+from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col
+from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_Impulse, add_ATR
 from apps.stock_returns import get_yf_data
 
 def Main():
@@ -54,23 +54,42 @@ def Main():
         data = data_dict['prices'].copy()
         df_return = data_dict['returns'].copy()
 
-        l_col, r_col = st.beta_columns(2)
+        l_col, m_col , r_col = st.beta_columns(3)
         with l_col.beta_expander('the moving averages'):
             ma_type = st.selectbox('moving average type', options = ['', 'ema', 'sma', 'vwap'])
             periods = st.text_input('moving average periods (comma separated)', value = '22,44')
             if ma_type:
                 for p in periods.split(','):
                     data = add_moving_average(data, period = int(p), type = ma_type)
-        with r_col.beta_expander('MACD'):
+        with m_col.beta_expander('MACD'):
             do_MACD = st.checkbox('Show MACD?', value = False)
             fast = st.number_input('fast', value = 12)
             slow = st.number_input('slow', value = 26)
             signal = st.number_input('signal', value = 9)
             if do_MACD:
                 data = add_MACD(data, fast = fast, slow = slow, signal = signal )
-        with l_col.beta_expander('oscillator'):
+        with r_col.beta_expander('oscillator'):
+            pass
+        with l_col.beta_expander('volume'):
+            # do_volume_profile = st.checkbox('Volume Profile')
             data = add_AD(data) if st.checkbox('Show Advance/ Decline') else data
             data = add_OBV(data)  if st.checkbox('Show On Balance Volume') else data
+        with m_col.beta_expander('channel'):
+            if ma_type:
+                atr_ma_name = st.selectbox('select moving average for ATR channel',
+                                options = [''] + get_moving_average_col(data.columns))
+                atr_period = st.number_input('Average True Range Period', value = 13)
+                atr_ema = st.checkbox('use EMA for ATR', value = True)
+                atr_channels = st.text_input('Channel Lines (comma separated)', value = "1,2,3")
+                if atr_ma_name:
+                    data = add_ATR(data, period = atr_period, use_ema = atr_ema,
+                                channel_dict = {atr_ma_name: [float(c) for c in atr_channels.split(',')]}
+                                )
+        with r_col.beta_expander('others'):
+            if do_MACD and ma_type:
+                impulse_ema = st.selectbox('select moving average for impulse',
+                                options = [''] + get_moving_average_col(data.columns))
+                data = add_Impulse(data, ema_name = impulse_ema) if impulse_ema else data
 
         with st.beta_expander('raw data'):
             st.subheader('Price Data')
@@ -83,7 +102,8 @@ def Main():
             st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
         single_ticker = len(l_tickers) == 1
 
-        fig = plotly_ohlc_chart(data[data.index > pd.Timestamp(start_date)], vol_col = 'Volume')
+        fig = plotly_ohlc_chart(data[data.index > pd.Timestamp(start_date)],
+                vol_col = 'Volume') #, show_volume_profile = do_volume_profile)
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
 if __name__ == '__main__':

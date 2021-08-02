@@ -65,15 +65,15 @@ def add_ATR(df, period: int = 13, use_ema = False,
         for k, l_channels in channel_dict.items():
             assert k in df.columns, f'add_ATR: {k} is not found in input df.'
             for c in l_channels:
-                df['{k}+{c}atr'] = df[k] + df['ATR'] * c
-                df['{k}-{c}atr'] = df[k] - df['ATR'] * c
+                df[f'ch:{k}+{c}atr'] = df[k] + df['ATR'] * c
+                df[f'ch:{k}-{c}atr'] = df[k] - df['ATR'] * c
 
     return df
 
 def add_AD(df):
-    '''Advance/ Decline
+    '''Accumulation/ Distribution
     '''
-    df['A/D'] = df['Volume'] * (df['Close'] - df['Open'])/ (df['High'] - df['Low'])
+    df['A/D'] = df['Volume'] * (df['Close'] - df['Open'])/ (df['High'] - df['Low']).fillna(0).cumsum()
     return df
 
 def add_OBV(df):
@@ -82,4 +82,21 @@ def add_OBV(df):
     '''
     obv = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum()
     df['OBV'] = obv
+    return df
+
+def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
+    ''' Elder's Impluse system
+    positive sloping ema and positive sloping MACD Hist are green
+    negative sloping ema and negative sloping MACD Hist are red
+    all other bars are blue
+    '''
+    assert ema_name in df.columns, f'{ema_name} not found in input df'
+    assert MACD_Hist_name in df.columns, f'{MACD_Hist_name} missing in df'
+
+    ema_diff = df[ema_name] - df[ema_name].shift()
+    macd_hist_diff = df[MACD_Hist_name] - df[MACD_Hist_name].shift()
+    df['impulse'] = np.array([1 if d_ema > 0 and d_macdh > 0 else
+                            -1 if d_ema < 0 and d_macdh < 0 else 0
+                            for d_ema, d_macdh in zip(ema_diff, macd_hist_diff)]
+                    )
     return df
