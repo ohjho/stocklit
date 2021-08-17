@@ -21,6 +21,13 @@ def getheadlines( query_params, bVerbose = False):
         print(f'Query endpoint: {url} with these params \n {query_params}')
     return GetJson(url, query_params)
 
+def get_headlines_sources(query_params, bVerbose = False):
+    url = base_url + 'top-headlines/sources?'
+    query_params['apiKey'] = api_key
+    if bVerbose:
+        print(f'Query endpoint: {url} with these params \n {query_params}')
+    return GetJson(url, query_params)
+
 def getSearch( search_term , optdict = None):
     url = base_url + 'everything?'
     params = params_ini
