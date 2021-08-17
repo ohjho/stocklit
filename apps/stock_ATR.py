@@ -11,6 +11,7 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.yf_utils import tickers_parser, get_dfs_by_tickers
 # from toolbox.plotly_utils import plotly_ohlc_chart
 from toolbox.ta_utils import add_ATR
+from toolbox.hkex_utils import get_lot_size
 from apps.stock_returns import get_yf_data
 
 def get_ATR_calc(df, period, use_ema, atr_multiplier = 2, var = 1000, price_col = 'Adj Close'):
@@ -23,11 +24,11 @@ def get_ATR_calc(df, period, use_ema, atr_multiplier = 2, var = 1000, price_col 
     data = add_ATR(df.copy(),  period = period, use_ema = use_ema, channel_dict = None)
     ATR = data['ATR'][-1]
     price = data[price_col][-1]
-    shares = price / (atr_multiplier * ATR)
+    shares = var / (atr_multiplier * ATR)
     return {'ATR': ATR,
         price_col : price,
         'ATR%Price': ATR/ price,
-        'shares': shares,
+        'num_shares': shares,
         'position_size': shares * price
         }
 
@@ -88,6 +89,11 @@ def Main():
                         var = var, price_col = 'Adj Close'
                         )}
             for t, df in df_dict.items() ]
+
+        # add HK lot size
+        for r in results:
+            if ".HK" in r['ticker']:
+                r['lot_size'] = get_lot_size(r['ticker'])
 
         with st.beta_expander(f'ATR Results', expanded = True):
             st.write(pd.DataFrame(results))
