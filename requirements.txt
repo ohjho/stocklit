@@ -3,6 +3,7 @@ stqdm>=0.0.2
 notebook==6.1.5
 PyYAML==5.4
 pandas==1.0.5
+openpyxl==3.0.7
 
 # mkt data packages
 # quandl==3.5.0
