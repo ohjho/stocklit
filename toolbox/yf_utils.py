@@ -94,3 +94,9 @@ def get_stocks_info(tickers, tqdm_func = tqdm):
         for t in tqdm_func(tickers_obj.values(), desc = "Getting stocks info")
     ]
     return results
+
+def df_to_weekly(df_daily):
+    '''
+    take a daily DF and convert it to weekly DF
+    '''
+    pass

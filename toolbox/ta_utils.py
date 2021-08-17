@@ -100,3 +100,11 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
                             for d_ema, d_macdh in zip(ema_diff, macd_hist_diff)]
                     )
     return df
+
+def add_peaks(df, date_col = None, order = 3):
+    ''' local minima & maxima detection
+    Args:
+        order: how many points on each side to use for the comparison
+    ref: https://eddwardo.github.io/posts/finding-local-extreams-in-pandas-time-series/
+    '''
+    pass
