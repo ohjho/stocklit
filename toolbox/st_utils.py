@@ -28,6 +28,7 @@ def plotly_hist_draw_hline(fig, l_value_format):
             {value: 123, line_format: Optional[{'color': '#b58900', 'dash': 'dot', 'width': 1}]}
 
     ref: https://github.com/plotly/plotly_express/issues/143
+    a simpler method here: https://plotly.com/python/horizontal-vertical-shapes/
     '''
     default_line_format = {'color': 'light grey', 'dash': 'dot', 'width': 1}
     l_shapes = []
