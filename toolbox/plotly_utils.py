@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import cycle
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -10,28 +11,50 @@ def get_channels_col(df_columns):
     return [c for c in df_columns if 'ch:' in c]
 
 def add_channel_trace(fig, df, ch_cols, date_col = None, rgb_tup = (255,222,0)):
-    # https://plotly.com/python/line-charts/
-    # assume channels are always in pair and uses atr only (i.e. created by add_ATR())
+    ''' Add Channel around MA using ATR
+    assume channels are always in pair and uses atr only (i.e. created by add_ATR())
+    Args:
+        rgb_tup: if none dotted line will be drawn, otherwise channel will appear
+                as colored area
+    ref: https://plotly.com/python/line-charts/
+    '''
     l_ch = [float(col.split('+')[-1].replace('atr',''))
             for col in ch_cols if '+' in col]
     l_ch = sorted(l_ch)[::-1] # descending
+    assert len(l_ch) <= 3, f"currently only support up to 3 channels only"
+
     date_serie = df[date_col] if date_col else df.index
 
+    dash_lines_dict = { # ideal for 3 channels
+        'dash': 'GhostWhite',
+        'dot': 'LemonChiffon', #'Ivory',
+        'dashdot': 'LightGrey'
+    }
     # to do color it the same color as the selected ema
     # ref: https://stackoverflow.com/questions/61353532/plotly-how-to-get-the-trace-color-attribute-in-order-to-plot-selected-marker-wi
     for i, ch in enumerate(l_ch):
         ch_hi, ch_lo = [c for c in ch_cols if str(ch) in c]
-        fig.add_trace(go.Scatter(
-                x = date_serie.tolist() + date_serie.tolist()[::-1],
-                y = df[ch_lo].tolist() + df[ch_hi].tolist()[::-1],
-                fill = "toself",
-                fillcolor = f'rgba({rgb_tup[0]},{rgb_tup[1]},{rgb_tup[2]},{(i+1)/10.0})',
-                line_color = 'rgba(255,255,255,0)',
-                name = ch_hi
-            ),
-            row = 1,
-            col = 1
-        )
+        if not rgb_tup:
+            line_style, line_color = list(dash_lines_dict.items())[i]
+            for ich in [ch_hi, ch_lo]:
+                fig.add_trace(
+                    go.Scatter(x = date_serie, y= df[ich],
+                        name = ich,
+                        line = {'dash': line_style, 'color': line_color, 'width': 0.5}),
+                    row= 1, col= 1
+                )
+        else:
+            fig.add_trace(go.Scatter(
+                    x = date_serie.tolist() + date_serie.tolist()[::-1],
+                    y = df[ch_lo].tolist() + df[ch_hi].tolist()[::-1],
+                    fill = "toself",
+                    fillcolor = f'rgba({rgb_tup[0]},{rgb_tup[1]},{rgb_tup[2]},{(i+1)/10.0})',
+                    line_color = 'rgba(255,255,255,0)',
+                    name = ch_hi
+                ),
+                row = 1,
+                col = 1
+            )
 
     return fig
 
@@ -67,6 +90,15 @@ def add_impulse_trace(fig, df, date_col = None,
         )
     return fig
 
+def add_ADX_trace(fig, df, ref_row, ref_col = 1, date_col = None,
+    line_color_map = {'ADX':'Yellow' , '+DMI': 'DarkOliveGreen', '-DMI': 'DarkRed'}
+    ):
+    date_serie = df[date_col] if date_col else df.index
+    for k, v in line_color_map.items():
+        fig.append_trace(go.Scatter(x = date_serie, y = df[k], name = k, line = {'color': v}),
+            row = ref_row, col = ref_col)
+    return fig
+
 def add_volume_profile(fig, df, vol_col, price_col, show_legend = False,
         color = 'Ivory', opacity = 0.6):
     '''add volume profile to candlestick chart
@@ -96,13 +128,16 @@ def add_volume_profile(fig, df, vol_col, price_col, show_legend = False,
 
 def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile = False,
         ohlc_col_map = {'o':'Open', 'h':'High', 'l': 'Low', 'c':'Close'},
-        show_legend = True, show_range_slider = True
+        show_legend = True, show_range_slider = True,
+        tup_rsi_hilo = (70,30), b_fill_channel = False
     ):
     '''
     return a fig object with a ohlc plot
     reference this stackoverflow solution: https://stackoverflow.com/a/65997291/14285096
     Args:
         show_range_slider: only applies if vol_col is None
+        tup_rsi_hilo: two numbers representing horizontal lines to be drew on the RSI subplot
+        b_fill_channel: fill channels with color instead of having dash line
     '''
     date_serie = df[date_col] if date_col else df.index
     if vol_col:
@@ -110,6 +145,8 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
         row_count += 1 if "MACD_histogram" in df.columns else 0
         row_count += 1 if "A/D" in df.columns else 0
         row_count += 1 if "OBV" in df.columns else 0
+        row_count += 1 if 'RSI' in df.columns else 0
+        row_count += 1 if 'ADX' in df.columns else 0
         row_heights = [0.7] + [0.2 for i in range(row_count-1)]
         # Create figure with secondary y-axis
         fig = make_subplots(rows = row_count, cols = 1, shared_xaxes= True,
@@ -152,15 +189,17 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
     if 'impulse' in df.columns:
         fig = add_impulse_trace(fig, df, ohlc_col_map = ohlc_col_map, date_col = date_col)
 
+    ch_cols = get_channels_col(df.columns)
+    if len(ch_cols)> 0:
+        fig = add_channel_trace(fig, df, ch_cols = ch_cols, date_col = date_col,
+                rgb_tup = (231,107,243) if b_fill_channel else None)
+
     ma_cols = get_moving_average_col(df.columns)
     if len(ma_cols)> 0:
         for ma in ma_cols:
             fig.add_trace(go.Scatter(x = date_serie, y = df[ma], name = ma),
-                    row = 1, col = 1 )
-    ch_cols = get_channels_col(df.columns)
-    if len(ch_cols)> 0:
-        fig = add_channel_trace(fig, df, ch_cols = ch_cols, date_col = date_col,
-                rgb_tup = (231,107,243))
+                    row = 1, col = 1
+                    )
 
     # Check for additional TA subplots
     ref_row = 2 if vol_col else 1
@@ -180,6 +219,19 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
         ref_row += 1
         fig.append_trace(go.Scatter(x = date_serie, y = df['OBV'], name = 'OBV'),
             row = ref_row, col = 1)
+
+    if 'RSI' in df.columns:
+        ref_row += 1
+        fig.append_trace(go.Scatter(x = date_serie, y = df['RSI'], name = 'RSI'),
+            row = ref_row, col = 1)
+        fig.add_hline(y = tup_rsi_hilo[1], line_dash = 'dot',
+            row = ref_row, col = 1)
+        fig.add_hline(y = tup_rsi_hilo[0], line_dash = 'dot',
+            row = ref_row, col = 1)
+
+    if 'ADX' in df.columns:
+        ref_row += 1
+        fig = add_ADX_trace(fig, df, ref_row = ref_row, date_col = date_col)
 
     #TODO: hide range outside trading hours: https://stackoverflow.com/a/65632833/14285096
     return fig

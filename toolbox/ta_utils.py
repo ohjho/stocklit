@@ -73,7 +73,9 @@ def add_ATR(df, period: int = 13, use_ema = False,
 def add_AD(df):
     '''Accumulation/ Distribution
     '''
-    df['A/D'] = df['Volume'] * (df['Close'] - df['Open'])/ (df['High'] - df['Low']).fillna(0).cumsum()
+    df['A/D'] = (
+        df['Volume'] * (df['Close'] - df['Open'])/ (df['High'] - df['Low'])
+        ).fillna(0).cumsum()
     return df
 
 def add_OBV(df):
@@ -82,6 +84,59 @@ def add_OBV(df):
     '''
     obv = (np.sign(df['Close'].diff()) * df['Volume']).fillna(0).cumsum()
     df['OBV'] = obv
+    return df
+
+def add_RSI(df, n = 14, price_col = 'Close'):
+    '''RSI
+    ref: https://stackoverflow.com/a/57037866/14285096
+    '''
+    def rma(x, n, y0): # Running Moving Average
+        a = (n-1) / n
+        ak = a**np.arange(len(x)-1, -1, -1)
+        return np.r_[np.full(n, np.nan), y0, np.cumsum(ak * x) / ak / n + y0 * a**np.arange(1, len(x)+1)]
+
+    delta = df[price_col].diff()
+    gains = delta.mask(delta < 0, 0.0)
+    losses = -delta.mask(delta > 0, -0.0)
+    avg_gain = rma(gains[n+1:].to_numpy(), n, np.nansum(gains.to_numpy()[:n+1])/n)
+    avg_loss = rma(losses[n+1:].to_numpy(), n, np.nansum(losses.to_numpy()[:n+1])/n)
+    df['RS'] = avg_gain / avg_loss
+    df[f'RSI'] = 100 - (100 / (1 + df['RS']))
+    return df
+
+def add_ADX(df, period: int):
+    """Computes the ADX indicator.
+    source: https://stackoverflow.com/a/64946213/14285096
+    """
+    alpha = 1/period
+    assert 'ATR' in df.columns, f"ATR must be computed before computing ADX"
+    # +-DX
+    df['H-pH'] = df['High'] - df['High'].shift(1)
+    df['pL-L'] = df['Low'].shift(1) - df['Low']
+    df['+DX'] = np.where(
+        (df['H-pH'] > df['pL-L']) & (df['H-pH']>0),
+        df['H-pH'],
+        0.0
+    )
+    df['-DX'] = np.where(
+        (df['H-pH'] < df['pL-L']) & (df['pL-L']>0),
+        df['pL-L'],
+        0.0
+    )
+    del df['H-pH'], df['pL-L']
+
+    # +- DMI
+    df['S+DM'] = df['+DX'].ewm(alpha=alpha, adjust=False).mean()
+    df['S-DM'] = df['-DX'].ewm(alpha=alpha, adjust=False).mean()
+    df['+DMI'] = (df['S+DM']/df['ATR'])*100
+    df['-DMI'] = (df['S-DM']/df['ATR'])*100
+    del df['S+DM'], df['S-DM']
+
+    # ADX
+    df['DX'] = (np.abs(df['+DMI'] - df['-DMI'])/(df['+DMI'] + df['-DMI']))*100
+    df['ADX'] = df['DX'].ewm(alpha=alpha, adjust=False).mean()
+    del df['DX'],df['-DX'], df['+DX']#, df['+DMI'], df['-DMI']
+
     return df
 
 def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
@@ -100,6 +155,29 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
                             for d_ema, d_macdh in zip(ema_diff, macd_hist_diff)]
                     )
     return df
+
+def get_avg_penetration(df, price_col = 'Low', fair_col = 'ewa_11',
+        num_of_bars = 22, get_dict = True):
+    ''' Calculate the average pentration below the fair
+    Args:
+        price_col: to check when this col is below the fair
+    '''
+    assert price_col in df.columns, f'{price_col} not found in input df'
+    assert fair_col in df.columns, f'{fair_col} not found in input df'
+    assert len(df) >= num_of_bars, f'df only has {len(df)} bars'
+
+    df_ = df.copy()[-num_of_bars:]
+    has_penetrate = df_[price_col]< df_[fair_col]
+    df_['penetration'] = df_[fair_col] - df_[price_col]
+    expected_fair = df_[fair_col][-1] + (df_[fair_col][-1] - df_[fair_col][-2])
+
+    return {'avg': df_[has_penetrate]['penetration'].mean(),
+        'stdv': df_[has_penetrate]['penetration'].std(),
+        'count': sum(has_penetrate),
+        'expected_fair': expected_fair,
+        'buy_target': expected_fair - df_[has_penetrate]['penetration'].mean()
+        } if get_dict else df_[has_penetrate]['penetration'].mean()
+
 
 def add_peaks(df, date_col = None, order = 3):
     ''' local minima & maxima detection
