@@ -46,7 +46,15 @@ def get_stocks_data(tickers, session = SESH,
     Args:
         yf_download_params: passed straight to yf.download, see https://github.com/ranaroussi/yfinance
     '''
-    prices_df = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+    if yf_download_params['interval'] == '1wk':
+        print(f'converting daily prices to weekly with internal method df_to_weekly()')
+        yf_download_params['interval'] == '1d'
+        prices_df = df_to_weekly(
+            df_daily = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+        )
+    else:
+        prices_df = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+
     returns_df = prices_df['Adj Close'].pct_change()[1:]
     if len(tickers.split())> 1:
         col_with_returns = [col for col in returns_df.columns
@@ -95,8 +103,21 @@ def get_stocks_info(tickers, tqdm_func = tqdm):
     ]
     return results
 
-def df_to_weekly(df_daily):
+def df_to_weekly(df_daily, date_col = None,
+        logic = {'Open'  : 'first',
+         'High'  : 'max',
+         'Low'   : 'min',
+         'Close' : 'last', 'Adj Close': 'last',
+         'Volume': 'sum'}
+    ):
     '''
     take a daily DF and convert it to weekly DF
+    see: https://stackoverflow.com/a/34598511/14285096
     '''
-    pass
+    df = df_daily.copy()
+    if date_col:
+        df.set_index(date_col, inplace = True)
+    df = df.resample('W',
+            loffset = pd.offsets.timedelta(days = -6) # put the labels to Monday
+            ).apply(logic)
+    return df
