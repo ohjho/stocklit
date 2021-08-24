@@ -40,10 +40,14 @@ def Main():
         # TODO: allow manual handling of data_start_date
         l_interval = ['1d','1wk','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1mo','3mo']
         interval = st.selectbox('interval', options = l_interval)
-        data_start_date = start_date if interval.endswith(('m','h')) else \
+        is_intraday = interval.endswith(('m','h'))
+        data_start_date = start_date if is_intraday else \
                         (BusinessDate(start_date) - "1y").to_date()
-        if interval.endswith(('m','h')):
-            st.warning(f'intraday data cannot extend last 60 days')
+        if is_intraday:
+            st.warning(f'''
+                intraday data cannot extend last 60 days\n
+                also, some features below might not work properly
+                ''')
 
     if tickers:
         side_config = st.sidebar.beta_expander('charts configure', expanded = False)
@@ -143,8 +147,10 @@ def Main():
 
         #TODO: fix tz issue for interval < 1d
         # see: https://stackoverflow.com/questions/16628819/convert-pandas-timezone-aware-datetimeindex-to-naive-timestamp-but-in-certain-t
-        fig = plotly_ohlc_chart(data[data.index > pd.Timestamp(start_date)],
-                vol_col = 'Volume', tup_rsi_hilo = tup_RSI_hilo,
+        fig = plotly_ohlc_chart(
+                df = data if is_intraday else data[data.index > pd.Timestamp(start_date)],
+                vol_col = 'Volume',
+                tup_rsi_hilo = tup_RSI_hilo,
                 b_fill_channel = fill_channels if atr_ma_name else None
                 ) #, show_volume_profile = do_volume_profile)
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
