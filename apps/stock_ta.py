@@ -56,10 +56,10 @@ def Main():
             # b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 800, min_value = 400, max_value = 1500, step = 50)
 
-        data_dict = get_stocks_data(tickers = tickers, yf_download_params = {
-                    'start': data_start_date, 'end': end_date, 'interval': interval, 'group_by': 'column'
-                    })
-            #get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
+        # data_dict = get_stocks_data(tickers = tickers, yf_download_params = {
+        #             'start': data_start_date, 'end': end_date, 'interval': interval, 'group_by': 'column'
+        #             })
+        data_dict = get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
         data = data_dict['prices'].copy()
         df_return = data_dict['returns'].copy()
 
@@ -159,6 +159,7 @@ def Main():
 
                 st.write(avg_pen_dict)
                 plot_avg_pen = st.checkbox('plot target buy targets and show average penetration df')
+                plot_target_buy = st.checkbox('plot target buy T+1')
                 if plot_avg_pen:
                     st.write(avg_pen_data)
 
@@ -179,6 +180,11 @@ def Main():
         if isinstance(avg_pen_data, pd.DataFrame):
             fig = add_Scatter(fig, df = avg_pen_data[avg_pen_data.index > pd.Timestamp(start_date)], target_col = 'buy_target') \
                 if plot_avg_pen else fig
+            if plot_target_buy:
+                # for y in avg_pen_dict['buy target T+1']:
+                #     fig.add_hline(y, line_dash = 'dot', row =1 , col = 1)
+                y0, y1 = avg_pen_dict['buy target T+1']
+                fig.add_hrect(y0, y1, line_width = 0, fillcolor = 'Yellow', opacity = 0.2)
 
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
