@@ -8,10 +8,10 @@ from businessdate import BusinessDate
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.yf_utils import tickers_parser
-from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col
+from toolbox.yf_utils import tickers_parser, get_stocks_data
+from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, add_Scatter
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
-                            add_ADX, add_Impulse, add_ATR, get_avg_penetration
+                            add_ADX, add_Impulse, add_ATR, add_avg_penetration
 from apps.stock_returns import get_yf_data
 
 def Main():
@@ -56,7 +56,10 @@ def Main():
             # b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 800, min_value = 400, max_value = 1500, step = 50)
 
-        data_dict = get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
+        data_dict = get_stocks_data(tickers = tickers, yf_download_params = {
+                    'start': data_start_date, 'end': end_date, 'interval': interval, 'group_by': 'column'
+                    })
+            #get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
         data = data_dict['prices'].copy()
         df_return = data_dict['returns'].copy()
 
@@ -120,13 +123,16 @@ def Main():
                                 options = [''] + get_moving_average_col(data.columns))
                 data = add_Impulse(data, ema_name = impulse_ema) if impulse_ema else data
 
-            avg_pen_dict = None
+            avg_pen_data = None
             if ma_type:
-                st.write("#### Average Penentration for Entry")
+                st.write("#### Average Penetration for Entry")
                 fair_col = st.selectbox('compute average penetration below',
                                 options = [''] + get_moving_average_col(data.columns))
-                avg_pen_dict = get_avg_penetration(df = data, fair_col = fair_col,
-                                    num_of_bars = st.number_input('period', value = 22)
+                avg_pen_data = add_avg_penetration(df = data, fair_col = fair_col,
+                                    num_of_bars = st.number_input('period', value = 30), # 4-6 weeks
+                                    use_ema = st.checkbox('use EMA for penetration'),
+                                    ignore_zero = st.checkbox('ignore days without penetration', value = True),
+                                    get_df = True
                                 ) if fair_col else None
 
         with st.beta_expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
@@ -135,10 +141,26 @@ def Main():
             st.subheader('Returns')
             st.write(df_return)
 
-        if avg_pen_dict:
-            with st.beta_expander('average pentration'):
+        if isinstance(avg_pen_data, pd.DataFrame):
+            with st.beta_expander('average penetration'):
+                avg_pen_dict = {
+                    'average penetration': avg_pen_data['avg_pen'][-1],
+                    'ATR': avg_pen_data['ATR'][-1],
+                    'penetration stdv': avg_pen_data['std_pen'][-1],
+                    'number of penetration within period': avg_pen_data['count_pen'][-1],
+                    'last': avg_pen_data['Close'][-1],
+                    'expected ema T+1': avg_pen_data[fair_col][-1] + (avg_pen_data[fair_col][-1] - avg_pen_data[fair_col][-2])
+                    }
                 avg_pen_dict = {k:round(v,2) for k,v in avg_pen_dict.items()}
+                avg_pen_dict['buy target T+1'] = tuple(sorted([
+                    avg_pen_dict['expected ema T+1'] - avg_pen_dict['average penetration'],
+                    avg_pen_dict['expected ema T+1'] - avg_pen_dict['ATR']
+                    ]))
+
                 st.write(avg_pen_dict)
+                plot_avg_pen = st.checkbox('plot target buy targets and show average penetration df')
+                if plot_avg_pen:
+                    st.write(avg_pen_data)
 
         l_tickers = df_return.columns.tolist()
         if len(l_tickers) != len(tickers.split(' ')):
@@ -153,6 +175,11 @@ def Main():
                 tup_rsi_hilo = tup_RSI_hilo,
                 b_fill_channel = fill_channels if atr_ma_name else None
                 ) #, show_volume_profile = do_volume_profile)
+
+        if isinstance(avg_pen_data, pd.DataFrame):
+            fig = add_Scatter(fig, df = avg_pen_data[avg_pen_data.index > pd.Timestamp(start_date)], target_col = 'buy_target') \
+                if plot_avg_pen else fig
+
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
 if __name__ == '__main__':

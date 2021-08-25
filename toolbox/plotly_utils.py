@@ -99,6 +99,14 @@ def add_ADX_trace(fig, df, ref_row, ref_col = 1, date_col = None,
             row = ref_row, col = ref_col)
     return fig
 
+def add_Scatter(fig, df, target_col, date_col = None):
+    date_serie = df[date_col] if date_col else df.index
+    fig.append_trace(
+        go.Scatter(x = date_serie, y = df[target_col], name = target_col),
+        row = 1, col = 1
+    )
+    return fig
+
 def add_volume_profile(fig, df, vol_col, price_col, show_legend = False,
         color = 'Ivory', opacity = 0.6):
     '''add volume profile to candlestick chart

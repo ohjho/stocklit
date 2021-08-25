@@ -156,28 +156,48 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
                     )
     return df
 
-def get_avg_penetration(df, price_col = 'Low', fair_col = 'ewa_11',
-        num_of_bars = 22, get_dict = True):
+def add_avg_penetration(df, price_col = 'Low', fair_col = 'ewa_11',
+        num_of_bars = 30, use_ema = False, ignore_zero = True, get_df = True):
     ''' Calculate the average pentration below the fair
     Args:
         price_col: to check when this col is below the fair
+        use_ema: use exponential moving average to compute average penetration
+        ignore_zero: ignore days without penetration
     '''
     assert price_col in df.columns, f'{price_col} not found in input df'
     assert fair_col in df.columns, f'{fair_col} not found in input df'
     assert len(df) >= num_of_bars, f'df only has {len(df)} bars'
 
-    df_ = df.copy()[-num_of_bars:]
+    df_ = df.copy()#[-num_of_bars:]
     has_penetrate = df_[price_col]< df_[fair_col]
     df_['penetration'] = df_[fair_col] - df_[price_col]
+    df_['penetration'] = df_['penetration'].clip(lower = 0) # turn negatives to 0
+    if use_ema:
+        # ref: https://stackoverflow.com/a/64969439/14285096
+        df_['avg_pen'] = df_['penetration'].replace(0, np.nan).ewm(num_of_bars, ignore_na = True).mean().shift() \
+                        if ignore_zero else \
+                        df_['penetration'].ewm(num_of_bars).mean().shift()
+        df_['std_pen'] = df_['penetration'].ewm(num_of_bars, ignore_na = True).std().shift() \
+                        if ignore_zero else \
+                        df_['penetration'].ewm(num_of_bars).std().shift()
+    else: # simple average
+        df_['avg_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].mean()).shift() \
+                        if ignore_zero else \
+                        df_['penetration'].rolling(num_of_bars).mean().shift()
+        df_['std_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].std()).shift() \
+                        if ignore_zero else \
+                        df_['penetration'].rolling(num_of_bars).std().shift()
+    df_['count_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].count()).shift()
+    df_['buy_target'] = df_[fair_col] - df_['avg_pen']
     expected_fair = df_[fair_col][-1] + (df_[fair_col][-1] - df_[fair_col][-2])
 
-    return {'avg': df_[has_penetrate]['penetration'].mean(),
-        'stdv': df_[has_penetrate]['penetration'].std(),
-        'count': sum(has_penetrate),
+    return df_ if get_df else {
+        'avg': df_['avg_pen'][-1],
+        'stdv': df_['std_pen'][-1],
+        'count': df_['count_pen'][-1],
         'expected_fair': expected_fair,
-        'buy_target': expected_fair - df_[has_penetrate]['penetration'].mean()
-        } if get_dict else df_[has_penetrate]['penetration'].mean()
-
+        'buy_target_t+1': expected_fair - df_['avg_pen'][-1]
+    }
 
 def add_peaks(df, date_col = None, order = 3):
     ''' local minima & maxima detection
