@@ -79,7 +79,7 @@ def Main():
                 data = add_MACD(data, fast = fast, slow = slow, signal = signal )
         with r_col.beta_expander('oscillator'):
             do_RSI = st.checkbox('RSI')
-            data = add_RSI(data, n = st.number_input('RSI period', value = 14)) if do_RSI else data
+            data = add_RSI(data, n = st.number_input('RSI period', value = 13)) if do_RSI else data
             tup_RSI_hilo = st.text_input('RSI chart high and low line (comma separated):', value = '70,30').split(',') \
                             if do_RSI else None
             tup_RSI_hilo = [int(i) for i in tup_RSI_hilo] if tup_RSI_hilo else None
@@ -89,7 +89,7 @@ def Main():
                     ) / len(data[data.index > pd.Timestamp(start_date)])
                 st.info(f"""
                 {round(data_over_hilo_pct * 100, 2)}% within hilo\n
-                5% rule: 5% of peaks and valley should be within hilo
+                5% of peaks and valley should be within hilo
                 """)
         with l_col.beta_expander('volume'):
             # do_volume_profile = st.checkbox('Volume Profile')
@@ -165,7 +165,7 @@ def Main():
                 #     ]))
 
                 st.write(avg_pen_dict)
-                plot_avg_pen = st.checkbox('plot target buy targets and show average penetration df')
+                plot_avg_pen = st.checkbox('plot buy SafeZone and show average penetration df')
                 plot_target_buy = st.checkbox('plot target buy T+1')
                 if plot_avg_pen:
                     st.write(avg_pen_data)
