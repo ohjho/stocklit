@@ -156,47 +156,57 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
                     )
     return df
 
-def add_avg_penetration(df, price_col = 'Low', fair_col = 'ewa_11',
-        num_of_bars = 30, use_ema = False, ignore_zero = True, get_df = True):
-    ''' Calculate the average pentration below the fair
+def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ewa_11',
+        num_of_bars = 30, use_ema = False, ignore_zero = True, coef = 1, get_df = True):
+    ''' Calculate the average pentration below & above the fair and
+        return buy and sell SafeZones
     Args:
-        price_col: to check when this col is below the fair
         use_ema: use exponential moving average to compute average penetration
         ignore_zero: ignore days without penetration
+        coef: applied to average penetration to create SafeZones
     '''
-    assert price_col in df.columns, f'{price_col} not found in input df'
+    hi, lo = hilo_col_names
+    assert hi in df.columns, f'{hi} not found in input df'
+    assert lo in df.columns, f'{hi} not found in input df'
     assert fair_col in df.columns, f'{fair_col} not found in input df'
     assert len(df) >= num_of_bars, f'df only has {len(df)} bars'
 
-    df_ = df.copy()#[-num_of_bars:]
-    has_penetrate = df_[price_col]< df_[fair_col]
-    df_['penetration'] = df_[fair_col] - df_[price_col]
-    df_['penetration'] = df_['penetration'].clip(lower = 0) # turn negatives to 0
-    if use_ema:
-        # ref: https://stackoverflow.com/a/64969439/14285096
-        df_['avg_pen'] = df_['penetration'].replace(0, np.nan).ewm(num_of_bars, ignore_na = True).mean().shift() \
-                        if ignore_zero else \
-                        df_['penetration'].ewm(num_of_bars).mean().shift()
-        df_['std_pen'] = df_['penetration'].ewm(num_of_bars, ignore_na = True).std().shift() \
-                        if ignore_zero else \
-                        df_['penetration'].ewm(num_of_bars).std().shift()
-    else: # simple average
-        df_['avg_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].mean()).shift() \
-                        if ignore_zero else \
-                        df_['penetration'].rolling(num_of_bars).mean().shift()
-        df_['std_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].std()).shift() \
-                        if ignore_zero else \
-                        df_['penetration'].rolling(num_of_bars).std().shift()
-    df_['count_pen'] = df_['penetration'].rolling(num_of_bars).apply(lambda x: x[x>0].count()).shift()
-    df_['buy_target'] = df_[fair_col] - df_['avg_pen']
-    expected_fair = df_[fair_col][-1] + (df_[fair_col][-1] - df_[fair_col][-2])
+    df_ = df.copy()
+    df_['up'] = (df_[hi] - df_[fair_col]).clip(lower = 0)   # upper penetration
+    df_['lp'] = (df_[fair_col] -df_[lo]).clip(lower = 0)    # lower penetration
+
+    for pen in ['up', 'lp']:
+        if use_ema:
+            # ref: https://stackoverflow.com/a/64969439/14285096
+            df_[f'avg_{pen}'] = df_[pen].replace(0, np.nan).ewm(num_of_bars, ignore_na = True).mean().shift() \
+                                if ignore_zero else \
+                                df_[pen].ewm(num_of_bars, ignore_na = True).mean().shift()
+            df_[f'std_{pen}'] = df_[pen].ewm(num_of_bars, ignore_na = True).std().shift() \
+                                if ignore_zero else \
+                                df_[pen].ewm(num_of_bars, ignore_na = True).std().shift()
+        else: # simple average
+            df_[f'avg_{pen}'] = df_[pen].rolling(num_of_bars).apply(lambda x: x[x>0].mean()).shift() \
+                                if ignore_zero else \
+                                df_[pen].rolling(num_of_bars).mean().shift()
+            df_[f'std_{pen}'] = df_[pen].rolling(num_of_bars).apply(lambda x: x[x>0].std()).shift() \
+                                if ignore_zero else \
+                                df_[pen].rolling(num_of_bars).std().shift()
+        df_[f'count_{pen}'] = df_[pen].rolling(num_of_bars).apply(lambda x: x[x>0].count()).shift()
+
+    df_['buy_safezone'] = df_[fair_col] - (df_['avg_lp'] * coef)
+    df_['sell_safezone'] = df_[fair_col] + (df_['avg_up'] * coef)
+
+    # expected_fair = df_[fair_col][-1] + (df_[fair_col][-1] - df_[fair_col][-2])
 
     return df_ if get_df else {
-        'avg': df_['avg_pen'][-1],
-        'stdv': df_['std_pen'][-1],
-        'count': df_['count_pen'][-1],
-        'expected_fair': expected_fair,
-        'buy_target_t+1': expected_fair - df_['avg_pen'][-1]
+        'avg_upper_penetration': df_['avg_up'][-1],
+        'stdv_upper_penetration': df_['std_up'][-1],
+        'count_upper_penetration': df_['count_up'][-1],
+        'avg_lower_penetration': df_['avg_lp'][-1],
+        'stdv_lower_penetration': df_['std_lp'][-1],
+        'count_lower_penetration': df_['count_lp'][-1],
+        # 'expected_fair': expected_fair,
+        # 'buy_target_t+1': expected_fair - df_['avg_lp'][-1]
     }
 
 def add_peaks(df, date_col = None, order = 3):

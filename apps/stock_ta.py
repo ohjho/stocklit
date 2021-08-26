@@ -33,7 +33,7 @@ def Main():
         if st.checkbox('pick start date'):
             start_date = st.date_input('Period Start Date', value = today - datetime.timedelta(days = 365))
         else:
-            tenor = st.text_input('Period', value = '250b')
+            tenor = st.text_input('Period', value = '6m')
             start_date = (BusinessDate(end_date) - tenor).to_date()
             st.info(f'period start date: {start_date}')
 
@@ -87,7 +87,10 @@ def Main():
                 data_over_hilo_pct = sum(
                     ((data['RSI']> tup_RSI_hilo[0]) | (data['RSI']< tup_RSI_hilo[1])) & (data.index > pd.Timestamp(start_date))
                     ) / len(data[data.index > pd.Timestamp(start_date)])
-                st.info(f"{round(data_over_hilo_pct * 100, 2)}% within hilo")
+                st.info(f"""
+                {round(data_over_hilo_pct * 100, 2)}% within hilo\n
+                5% rule: 5% of peaks and valley should be within hilo
+                """)
         with l_col.beta_expander('volume'):
             # do_volume_profile = st.checkbox('Volume Profile')
             data = add_AD(data) if st.checkbox('Show Advance/ Decline') else data
@@ -125,13 +128,16 @@ def Main():
 
             avg_pen_data = None
             if ma_type:
-                st.write("#### Average Penetration for Entry")
+                st.write("#### Average Penetration for Entry/ SafeZone")
                 fair_col = st.selectbox('compute average penetration below',
                                 options = [''] + get_moving_average_col(data.columns))
                 avg_pen_data = add_avg_penetration(df = data, fair_col = fair_col,
-                                    num_of_bars = st.number_input('period', value = 30), # 4-6 weeks
-                                    use_ema = st.checkbox('use EMA for penetration'),
+                                    num_of_bars = st.number_input('period (e.g. 4-6 weeks)', value = 30), # 4-6 weeks
+                                    use_ema = st.checkbox('use EMA for penetration', value = False),
                                     ignore_zero = st.checkbox('ignore days without penetration', value = True),
+                                    coef = st.number_input(
+                                        'SafeZone Coefficient (stops should be set at least 1x Average Penetration)',
+                                        value = 1.0, step = 0.1),
                                     get_df = True
                                 ) if fair_col else None
 
@@ -144,18 +150,19 @@ def Main():
         if isinstance(avg_pen_data, pd.DataFrame):
             with st.beta_expander('average penetration'):
                 avg_pen_dict = {
-                    'average penetration': avg_pen_data['avg_pen'][-1],
+                    'average penetration': avg_pen_data['avg_lp'][-1],
                     'ATR': avg_pen_data['ATR'][-1],
-                    'penetration stdv': avg_pen_data['std_pen'][-1],
-                    'number of penetration within period': avg_pen_data['count_pen'][-1],
+                    'penetration stdv': avg_pen_data['std_lp'][-1],
+                    'number of penetrations within period': avg_pen_data['count_lp'][-1],
                     'last': avg_pen_data['Close'][-1],
                     'expected ema T+1': avg_pen_data[fair_col][-1] + (avg_pen_data[fair_col][-1] - avg_pen_data[fair_col][-2])
                     }
                 avg_pen_dict = {k:round(v,2) for k,v in avg_pen_dict.items()}
-                avg_pen_dict['buy target T+1'] = tuple(sorted([
-                    avg_pen_dict['expected ema T+1'] - avg_pen_dict['average penetration'],
-                    avg_pen_dict['expected ema T+1'] - avg_pen_dict['ATR']
-                    ]))
+                avg_pen_dict['buy target T+1'] = avg_pen_dict['expected ema T+1'] - avg_pen_dict['average penetration']
+                # avg_pen_dict['buy target T+1'] = tuple(sorted([
+                #     avg_pen_dict['expected ema T+1'] - avg_pen_dict['average penetration'],
+                #     avg_pen_dict['expected ema T+1'] - avg_pen_dict['ATR']
+                #     ]))
 
                 st.write(avg_pen_dict)
                 plot_avg_pen = st.checkbox('plot target buy targets and show average penetration df')
@@ -178,13 +185,14 @@ def Main():
                 ) #, show_volume_profile = do_volume_profile)
 
         if isinstance(avg_pen_data, pd.DataFrame):
-            fig = add_Scatter(fig, df = avg_pen_data[avg_pen_data.index > pd.Timestamp(start_date)], target_col = 'buy_target') \
+            fig = add_Scatter(fig, df = avg_pen_data[avg_pen_data.index > pd.Timestamp(start_date)], target_col = 'buy_safezone') \
                 if plot_avg_pen else fig
             if plot_target_buy:
+                fig.add_hline(y = avg_pen_dict['buy target T+1'] , line_dash = 'dot', row =1, col = 1)
                 # for y in avg_pen_dict['buy target T+1']:
                 #     fig.add_hline(y, line_dash = 'dot', row =1 , col = 1)
-                y0, y1 = avg_pen_dict['buy target T+1']
-                fig.add_hrect(y0, y1, line_width = 0, fillcolor = 'Yellow', opacity = 0.2)
+                # y0, y1 = avg_pen_dict['buy target T+1']
+                # fig.add_hrect(y0, y1, line_width = 0, fillcolor = 'Yellow', opacity = 0.2)
 
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
