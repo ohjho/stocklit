@@ -1,7 +1,7 @@
 # project specific
 yfinance.cache
 configs.yml
-jupyter/
+nbs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
