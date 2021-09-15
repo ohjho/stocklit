@@ -107,6 +107,33 @@ def add_Scatter(fig, df, target_col, date_col = None):
     )
     return fig
 
+def add_Scatter_Event(fig, df, target_col, anchor_col,
+        textposition = 'top center', fontsize = None, marker_symbol = None,
+        event_label = None, date_col = None):
+    ''' add non-zero points in target_col as events to the main chart
+    '''
+    df_ = df[df[target_col]!=0].copy()
+    date_serie = df_[date_col] if date_col else df_.index
+
+    if event_label: # ensure it is the right size
+        event_label = event_label if type(event_label) == list else \
+                    [event_label for i in range(len(date_serie))]
+
+    # for marker styling see: https://plotly.com/python/marker-style/
+
+    fig.append_trace(
+        go.Scatter( x = date_serie, y = df_[anchor_col],
+            mode = 'markers+text',
+            name = target_col,
+            marker_symbol = marker_symbol,
+            textposition = textposition,
+            textfont_size = fontsize,
+            text = event_label if event_label else df_[target_col]
+        ),
+        row =1, col = 1
+    )
+    return fig
+
 def add_volume_profile(fig, df, vol_col, price_col, show_legend = False,
         color = 'Ivory', opacity = 0.6):
     '''add volume profile to candlestick chart
