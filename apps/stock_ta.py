@@ -9,9 +9,12 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data
-from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, add_Scatter
+from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
+                            add_Scatter, add_Scatter_Event
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
-                            add_ADX, add_Impulse, add_ATR, add_avg_penetration
+                            add_ADX, add_Impulse, add_ATR, add_avg_penetration, \
+                            market_classification, \
+                            detect_kangaroo_tails, detect_macd_divergence
 from apps.stock_returns import get_yf_data
 
 def Main():
@@ -138,11 +141,33 @@ def Main():
                                     coef = st.number_input(
                                         'SafeZone Coefficient (stops should be set at least 1x Average Penetration)',
                                         value = 1.0, step = 0.1),
-                                    get_df = True
+                                    get_df = True, debug = True
                                 ) if fair_col else None
+
+            st.write(f'#### Detect Kangaroo Tails')
+            tail_type = st.selectbox('Tail Type',
+                            options = ['', 0, 1, -1])
+            data = detect_kangaroo_tails(data,
+                    atr_threshold = st.number_input('ATR Threshold', value = 2.0),
+                    period = st.number_input('period', value = 22), tail_type = tail_type) \
+                    if tail_type else data
+            if do_MACD:
+                st.write('#### MACD Bullish Divergence')
+                if st.checkbox('Show Divergence'):
+                    data = detect_macd_divergence(data,
+                            period = st.number_input('within number of bars (should be around 3 months)', value = 66),
+                            threshold = st.number_input('current low threshold (% of previous major low)', value = 0.95)
+                            )
+            st.write('#### Market Type Classification')
+            st.write(market_classification(data,
+                    period = st.number_input('peroid (approx. 3m)', value = 66),
+                    debug = False
+                    ))
 
         with st.beta_expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
             st.subheader('Price Data')
+            # st.write(data[data['kangaroo_tails']==1])
+            # st.write(data[data['MACD_Divergence']])
             st.write(data)
             st.subheader('Returns')
             st.write(df_return)
@@ -193,6 +218,12 @@ def Main():
                 #     fig.add_hline(y, line_dash = 'dot', row =1 , col = 1)
                 # y0, y1 = avg_pen_dict['buy target T+1']
                 # fig.add_hrect(y0, y1, line_width = 0, fillcolor = 'Yellow', opacity = 0.2)
+        for d in ['MACD_Divergence', 'kangaroo_tails']:
+            if d in data.columns:
+                fig = add_Scatter_Event(fig, data[data.index > pd.Timestamp(start_date)],
+                        target_col = d,
+                        anchor_col = 'Low', textposition = 'bottom center', fontsize = 8,
+                        marker_symbol = 'triangle-up', event_label = d[0])
 
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
