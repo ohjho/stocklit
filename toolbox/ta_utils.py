@@ -141,9 +141,9 @@ def add_ADX(df, period: int):
 
 def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
     ''' Elder's Impluse system
-    positive sloping ema and positive sloping MACD Hist are green
-    negative sloping ema and negative sloping MACD Hist are red
-    all other bars are blue
+    positive sloping ema and positive sloping MACD Hist are green (1)
+    negative sloping ema and negative sloping MACD Hist are red (-1)
+    all other bars are blue (0)
     '''
     assert ema_name in df.columns, f'{ema_name} not found in input df'
     assert MACD_Hist_name in df.columns, f'{MACD_Hist_name} missing in df'
@@ -156,8 +156,9 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
                     )
     return df
 
-def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ewa_11',
-        num_of_bars = 30, use_ema = False, ignore_zero = True, coef = 1, get_df = True):
+def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ema_11',
+        num_of_bars = 30, use_ema = False, ignore_zero = True, coef = 1,
+        get_df = True, debug = False):
     ''' Calculate the average pentration below & above the fair and
         return buy and sell SafeZones
     Args:
@@ -197,6 +198,10 @@ def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ewa_11'
     df_['sell_safezone'] = df_[fair_col] + (df_['avg_up'] * coef)
 
     # expected_fair = df_[fair_col][-1] + (df_[fair_col][-1] - df_[fair_col][-2])
+    if not debug and get_df:
+        del df_['up'], df_['lp']
+        for p in ['up', 'lp']:
+            del df_[f'avg_{p}'], df_[f'std_{p}'], df_[f'count_{p}']
 
     return df_ if get_df else {
         'avg_upper_penetration': df_['avg_up'][-1],
@@ -208,6 +213,119 @@ def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ewa_11'
         # 'expected_fair': expected_fair,
         # 'buy_target_t+1': expected_fair - df_['avg_lp'][-1]
     }
+
+def market_classification(df, period, debug = False,
+        class_names_map = {0: 'rangebound', 1: 'trending-up', -1: 'trending-down'} ):
+    ''' detect trending-up, trending-down, or rangebound
+    '''
+    df['period_high'] = df['High'].rolling(period).max().shift()
+    df['period_low'] = df['Low'].rolling(period).min().shift()
+
+    highs = [round(p,2) for p in df['period_high'][-period:].unique().tolist()]
+    if debug:
+        print(f'{period} bars highs: {highs}')
+    hh = sorted(highs) == highs
+    lh = sorted(highs, reverse = True) == highs
+
+    lows = [round(p,2) for p in df['period_low'][-period:].unique().tolist()]
+    if debug:
+        print(f'{period} bars lows: {lows}')
+    ll = sorted(lows, reverse = True) == lows
+    hl = sorted(lows) == lows
+
+    mkt_cls = -1 if ll and lh else 0
+    mkt_cls = 1 if hh and hl else mkt_cls
+    return class_names_map[mkt_cls] if class_names_map else mkt_cls
+
+def detect_kangaroo_tails(df, col_name = 'kangaroo_tails',
+        atr_threshold = 2, period = 13, hilo_col_name_tup = ('High','Low'),
+        tail_type = 0, debug = False
+    ):
+    ''' add a new column to the df when 1 indicates a kangaroo tail
+    on the previous bar
+    see: https://www.bwts.com.au/download/lc-charting-and-technical-analysis/41-kangaroo-tail-pattern.pdf
+    Args:
+        tail_type: 1 for upward pointing tails, -1 for downward pointing, 0 for both
+    '''
+    assert 'ATR' in df.columns, f"ATR calculation is required before this function is ran"
+    hi_col, low_col = hilo_col_name_tup
+    df['is_new_low'] = (df[low_col] < df[low_col].rolling(period).min().shift())
+    df['is_new_hi'] = (df[hi_col] > df[hi_col].rolling(period).max().shift())
+    df['pct_of_ATR'] = (df['TR'] / df['ATR'].shift())
+    hilo = df[hi_col] - df[low_col] # can use TR because it includes change from prev close
+    pre_req_condition = (
+        (df['pct_of_ATR'].shift() > atr_threshold) & # previous bar has to be tall
+        ((hilo <= df['ATR']) & (hilo.shift(2) <= df['ATR'])) &  # adjusant bodies are normal
+        (~df['is_new_hi'] & ~df['is_new_low']) # today is a normal day
+        )
+    downtail_condition = (
+        (df['Low']> df['Low'].shift()) &
+        ((df['High'].shift(2) > df['High'].shift()) &
+            (df['Low'].shift(2) <= df['High'].shift())
+            ) & # previous high is in t-2 range
+        ((df['High'] > df['High'].shift()) &
+            (df['Low'] <= df['High'].shift())
+            ) # previous high is in today's range
+        )
+    uptail_condition = (
+        (df['High'].shift() > df['High']) &
+        ((df['High'].shift(2) >= df['Low'].shift()) &
+            (df['Low'].shift(2) < df['Low'].shift())
+            ) & # previous high is in t-2 range
+        ((df['High'] >= df['Low'].shift()) &
+            (df['Low'] < df['Low'].shift())
+            ) # previous high is in today's range
+        )
+    # for i, row in df.reset_index().iterrows():
+    #     if i > 0:
+    #         if is_new_hi[i-1] or is_new_low[i-1]:
+    #             if pct_of_ATR[i-1]> atr_threshold and \
+    #             pct_of_ATR[i]< atr_threshold and pct_of_ATR[i-2]< atr_threshold:
+    #                 if not is_new_hi[i] and not is_new_low[i]:
+    #                     df[col_name] = 1
+    if not debug:
+        del df['is_new_hi'], df['is_new_low'], df['pct_of_ATR']
+
+    tail_con = (pre_req_condition & downtail_condition) if tail_type == -1 else \
+                (pre_req_condition & uptail_condition)
+    tail_con = (pre_req_condition & downtail_condition & uptail_condition) \
+                if tail_type == 0 else tail_con
+    df[col_name] = tail_con
+    return df
+
+def detect_macd_divergence(df, period = 66, threshold = 1):
+    ''' Detect MACD Divergence
+    Args:
+        period = number of bars (should be around 3M)
+        threshold = current price less than previous low * threshold
+    '''
+    macd_h = 'MACD_histogram'
+    assert macd_h in df.columns, f"Please run add_MACD() first"
+    do_impulse = 'impulse' in df.columns
+    recent_period = int(period/3) # power of 5? maybe 1/3 better?
+
+    # Bullish Divergence
+    is_new_low = ((df['Low'].rolling(period).min().shift()/df['Low']) >= threshold)
+    is_macd_low = (df[macd_h] < df[macd_h].rolling(period).min().shift())
+    recent_macd_low = df[macd_h].rolling(recent_period).min().shift()
+    recent_macd_low_is_low = (recent_macd_low <= df[macd_h].rolling(period).min().shift())
+    recent_macd_low_over_threshold = (
+        recent_macd_low/ df[macd_h].rolling(period).min().shift() >= threshold
+    )
+    recent_macd_high = df[macd_h].rolling(recent_period).max().shift()
+    impulse_check = (df['impulse'] != -1) if do_impulse else True
+
+    df['MACD_Divergence'] = (is_new_low & ~is_macd_low &
+                            (df[macd_h]< 0) &
+                            ~recent_macd_low_is_low &
+                            ~recent_macd_low_over_threshold &
+                            (recent_macd_high >= 0) &
+                            impulse_check
+                            )
+    # for debugging
+    # df['MACD_hist_recent_low'] = recent_macd_low
+    # df['MACD_period_low'] = df[macd_h].rolling(period).min().shift()
+    return df
 
 def add_peaks(df, date_col = None, order = 3):
     ''' local minima & maxima detection
