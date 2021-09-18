@@ -293,7 +293,15 @@ def detect_kangaroo_tails(df, col_name = 'kangaroo_tails',
     df[col_name] = tail_con
     return df
 
-def detect_macd_divergence(df, period = 66, threshold = 1):
+def cluster_near_by_sign(data, n= 1):
+    ''' cluster neigboring points by sign
+    ref: https://stackoverflow.com/a/33812257/14285096
+    '''
+    from itertools import groupby
+    all_clusters = [list(v) for k, v in groupby(data, lambda x: x<0)]
+    return all_clusters[-n:] if n else all_clusters
+
+def detect_macd_divergence(df, period = 66, threshold = 1, debug = False):
     ''' Detect MACD Divergence
     Args:
         period = number of bars (should be around 3M)
@@ -302,29 +310,64 @@ def detect_macd_divergence(df, period = 66, threshold = 1):
     macd_h = 'MACD_histogram'
     assert macd_h in df.columns, f"Please run add_MACD() first"
     do_impulse = 'impulse' in df.columns
-    recent_period = int(period/3) # power of 5? maybe 1/3 better?
+    # Computation of recent period is the problem here
+    # recent_period = int(period/3) # power of 5? maybe 1/3 better?
 
     # Bullish Divergence
-    is_new_low = ((df['Low'].rolling(period).min().shift()/df['Low']) >= threshold)
+    current_clusters_size = df[macd_h].rolling(period).apply(
+                            lambda x: len(cluster_near_by_sign(x, n =1)[0])
+                            ).shift()
+    lows_ll = df['Low'].tolist()
+    period_lows = [lows_ll[i-period: i] if i>= period else []
+                        for i, v in enumerate(lows_ll)
+                        ]
+    recent_low = [ min(lows[-size:]) if size and len(lows)>0 else np.nan
+        for lows, size in zip( period_lows,
+            current_clusters_size.fillna(0).astype('int').tolist()
+            )
+        ]
+
+    # is_new_low = ((df['Low'].rolling(period).min().shift()/df['Low']) >= threshold)
+    # is_new_low = ((df['Low'].rolling(period).min().shift()/recent_low) >= threshold)
+
+    # using recent_low is better than just lowing at Low in that it capture false downside breakouts
+    is_new_low = ((df['Low'].rolling(period).min().shift()/recent_low) >= threshold)
     is_macd_low = (df[macd_h] < df[macd_h].rolling(period).min().shift())
-    recent_macd_low = df[macd_h].rolling(recent_period).min().shift()
+    # recent_macd_low = df[macd_h].rolling(recent_period).min().shift()
+    recent_macd_low = df[macd_h].rolling(period).apply(
+                        lambda x: min(cluster_near_by_sign(x, n =1)[0])
+                        ).shift()
     recent_macd_low_is_low = (recent_macd_low <= df[macd_h].rolling(period).min().shift())
     recent_macd_low_over_threshold = (
         recent_macd_low/ df[macd_h].rolling(period).min().shift() >= threshold
     )
-    recent_macd_high = df[macd_h].rolling(recent_period).max().shift()
+
+    # number_of_macdH_clusters removed the need for this
+    # recent_macd_high = df[macd_h].rolling(recent_period).max().shift()
+    number_of_macdH_clusters = df[macd_h].rolling(period).apply(
+                                lambda x: len(cluster_near_by_sign(x, n = None))
+                                ).shift()
     impulse_check = (df['impulse'] != -1) if do_impulse else True
 
     df['MACD_Divergence'] = (is_new_low & ~is_macd_low &
                             (df[macd_h]< 0) &
                             ~recent_macd_low_is_low &
                             ~recent_macd_low_over_threshold &
-                            (recent_macd_high >= 0) &
+                            # (recent_macd_high >= 0) &
+                            (number_of_macdH_clusters >= 2 ) &
                             impulse_check
                             )
-    # for debugging
-    # df['MACD_hist_recent_low'] = recent_macd_low
-    # df['MACD_period_low'] = df[macd_h].rolling(period).min().shift()
+    if debug:
+        df[f'{period}_bars_low'] = df['Low'].rolling(period).min().shift()
+        df['recent_cluster_size'] = current_clusters_size
+        df['recent_low'] = recent_low
+        df['is_new_low'] = is_new_low
+        df['MACDh_period_low'] = df[macd_h].rolling(period).min().shift()
+        df['MACDh_recent_low'] = recent_macd_low
+        df['MACDh_recent_low_over_thresh'] = recent_macd_low_over_threshold
+        df['MACDh_is_new_low'] = is_macd_low
+        df['MACDh_culsters_count'] = number_of_macdH_clusters
+        df['MACDh_impulse_check'] =impulse_check
     return df
 
 def add_peaks(df, date_col = None, order = 3):

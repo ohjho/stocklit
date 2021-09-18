@@ -160,7 +160,8 @@ def Main():
                     if st.checkbox('Show Divergence'):
                         data = detect_macd_divergence(data,
                                 period = st.number_input('within number of bars (should be around 3 months)', value = 66),
-                                threshold = st.number_input('current low threshold (% of previous major low)', value = 0.95)
+                                threshold = st.number_input('current low threshold (% of previous major low)', value = 0.95),
+                                debug = True
                                 )
                 st.write(f'#### Detect Kangaroo Tails')
                 tail_type = st.selectbox('Tail Type',
@@ -170,6 +171,14 @@ def Main():
                         period = st.number_input('period', value = 22), tail_type = tail_type) \
                         if tail_type else data
 
+        with st.sidebar.beta_expander(tickers, expanded = True):
+            if mkt_class:
+                st.write(f'market is `{mkt_class}` for the last **{mkt_class_period} bars**')
+
+            if tickers.endswith(('.HK', '.TO')):
+                st.write(f'''
+                * [news link](https://www.reuters.com/companies/{tickers}/news)
+                ''')
 
         with st.beta_expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
             # st.subheader('Price Data')
