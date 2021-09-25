@@ -4,28 +4,29 @@ from openpyxl import load_workbook
 from io import BytesIO
 from urllib.request import urlopen
 
-from functools import lru_cache, wraps
-from datetime import datetime, timedelta
-
-def timed_lru_cache(seconds: int, maxsize: int = 128):
-    ''' add an expiry to the lru_cache
-    ref: https://realpython.com/lru-cache-python/
-    '''
-    def wrapper_cache(func):
-        func = lru_cache(maxsize=maxsize)(func)
-        func.lifetime = timedelta(seconds=seconds)
-        func.expiration = datetime.utcnow() + func.lifetime
-
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            if datetime.utcnow() >= func.expiration:
-                func.cache_clear()
-                func.expiration = datetime.utcnow() + func.lifetime
-            return func(*args, **kwargs)
-
-        return wrapped_func
-
-    return wrapper_cache
+from data_utils import timed_lru_cache
+# from functools import lru_cache, wraps
+# from datetime import datetime, timedelta
+#
+# def timed_lru_cache(seconds: int, maxsize: int = 128):
+#     ''' add an expiry to the lru_cache
+#     ref: https://realpython.com/lru-cache-python/
+#     '''
+#     def wrapper_cache(func):
+#         func = lru_cache(maxsize=maxsize)(func)
+#         func.lifetime = timedelta(seconds=seconds)
+#         func.expiration = datetime.utcnow() + func.lifetime
+#
+#         @wraps(func)
+#         def wrapped_func(*args, **kwargs):
+#             if datetime.utcnow() >= func.expiration:
+#                 func.cache_clear()
+#                 func.expiration = datetime.utcnow() + func.lifetime
+#             return func(*args, **kwargs)
+#
+#         return wrapped_func
+#
+#     return wrapper_cache
 
 @timed_lru_cache(seconds = 8*60**2) # Cache data for 8 hours
 def get_hkex_securities_df(xlsx_url = 'https://www.hkex.com.hk/eng/services/trading/securities/securitieslists/ListOfSecurities.xlsx',

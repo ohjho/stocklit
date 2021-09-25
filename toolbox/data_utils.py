@@ -1,5 +1,46 @@
-import os, json
+import os, json, validators, requests, warnings
 import numpy as np
+
+# for cache function
+from functools import lru_cache, wraps
+from datetime import datetime, timedelta
+
+def timed_lru_cache(seconds: int, maxsize: int = 128):
+    ''' add an expiry to the lru_cache
+    ref: https://realpython.com/lru-cache-python/
+    '''
+    def wrapper_cache(func):
+        func = lru_cache(maxsize=maxsize)(func)
+        func.lifetime = timedelta(seconds=seconds)
+        func.expiration = datetime.utcnow() + func.lifetime
+
+        @wraps(func)
+        def wrapped_func(*args, **kwargs):
+            if datetime.utcnow() >= func.expiration:
+                func.cache_clear()
+                func.expiration = datetime.utcnow() + func.lifetime
+            return func(*args, **kwargs)
+
+        return wrapped_func
+
+    return wrapper_cache
+
+def JsonReader(fname, raise_error = False):
+	'''
+	Returns the JSON object stored inside the given fname
+	'''
+	if os.path.isfile(fname):
+		with open(fname, 'r') as fh:
+			return json.load(fh)
+	elif validators.url(fname):
+		r = requests.get(fname)
+		return r.json()
+	else:
+		if raise_error:
+			raise FileNotFoundError(f'JsonReader: {fname} is not found.')
+		else:
+			warnings.warn(f'JsonReader: {fname} is not found.')
+			return None
 
 def JsonLookUp(jsonObj, searchKey, searchVal, resultKey= None):
 	'''
