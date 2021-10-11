@@ -7,9 +7,9 @@ from businessdate import BusinessDate
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
-# from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
+from toolbox.st_utils import show_plotly
 from toolbox.yf_utils import tickers_parser, get_dfs_by_tickers
-# from toolbox.plotly_utils import plotly_ohlc_chart
+from toolbox.plotly_utils import plotly_ohlc_chart
 from toolbox.ta_utils import add_ATR
 from toolbox.hkex_utils import get_lot_size
 from apps.stock_returns import get_yf_data
@@ -21,7 +21,7 @@ def get_ATR_calc(df, period, use_ema, atr_multiplier = 2, var = 1000, price_col 
         df: dataframe of prices from yfinance for a Single Stock
         var: Value At Risk
     '''
-    data = add_ATR(df.copy(),  period = period, use_ema = use_ema, channel_dict = None)
+    data = add_ATR(df,  period = period, use_ema = use_ema, channel_dict = None)
     ATR = data['ATR'][-1]
     price = data[price_col][-1]
     shares = var / (atr_multiplier * ATR)
@@ -97,6 +97,20 @@ def Main():
 
         with st.beta_expander(f'ATR Results', expanded = True):
             st.write(pd.DataFrame(results))
+
+        with st.beta_expander('View ATR'):
+            # View ATR time series of all given stocks
+            atr_dict = { ticker : df['ATR'].dropna().to_dict()
+                    for ticker, df in df_dict.items()
+                }
+            df_p = pd.DataFrame.from_dict(atr_dict)
+
+            tickers = st.multiselect(f'ticker', options = [''] + list(df_dict.keys()))
+            fig = px.line( df_p,  y = tickers if tickers else df_p.columns,
+                        labels = {'x': 'Date', 'y': 'ATR'},
+                        title = f'Historical Average True Range ({atr_period} bars)'
+                    )
+            show_plotly(fig) #, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
 if __name__ == '__main__':
     Main()
