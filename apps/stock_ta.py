@@ -1,5 +1,6 @@
 import os, sys, json, datetime
 import streamlit as st
+import yfinance as yf
 import pandas as pd
 import plotly.express as px
 from businessdate import BusinessDate
@@ -8,14 +9,49 @@ from businessdate import BusinessDate
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.yf_utils import tickers_parser, get_stocks_data
+from toolbox.yf_utils import tickers_parser, get_stocks_data, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
                             add_Scatter, add_Scatter_Event
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
                             add_ADX, add_Impulse, add_ATR, add_avg_penetration, \
-                            market_classification, \
-                            detect_kangaroo_tails, detect_macd_divergence
+                            market_classification, efficiency_ratio
+from strategies.macd_divergence import detect_macd_divergence
+from strategies.kangaroo_tails import detect_kangaroo_tails
 from apps.stock_returns import get_yf_data
+
+def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
+    container_obj = st_asset.beta_expander(f'''
+                    {stock_info_obj['symbol']} : {stock_info_obj['longName']}
+                    ''', expanded = True)
+    str_links = f'[:link:]({stock_info_obj["website"]}) ' \
+                if 'website' in stock_info_obj.keys() else ''
+    str_links += f'[:newspaper:](https://www.reuters.com/companies/{stock_info_obj["symbol"]}/news)' \
+                if stock_info_obj['symbol'].endswith(('.HK', '.TO')) else ''
+    container_obj.write(str_links)
+    if 'shortRatio' in stock_info_obj.keys():
+        container_obj.write(f'''
+            [days to cover](https://finance.yahoo.com/news/short-ratio-stock-sentiment-indicator-210007353.html): `{stock_info_obj["shortRatio"]}`
+        ''')
+    return container_obj
+
+def add_div_col(df_price, df_div, div_col_name = 'ex-dividend'):
+    # assume both df has date index
+    if len(df_div) > 0:
+        ex_div_dates = df_div.index.tolist()
+        df_price[div_col_name] = [d in ex_div_dates for d in df_price.index.tolist()]
+    return df_price
+
+def add_event_col(df_price, df_events, event_col_name, ignore_time = True):
+    ''' add an event column based on df_events to df_price assuming that both df has a date index
+    Args:
+        ignore_time: remove time in df_events (see: https://stackoverflow.com/questions/24786209/dropping-time-from-datetime-m8-in-pandas)
+    '''
+
+    if len(df_events)>0:
+        event_dates = df_events.index.normalize().tolist()
+        df_price[event_col_name] = [d in event_dates for d in df_price.index.tolist()]
+    return df_price
+
 
 def Main():
     with st.sidebar.beta_expander("TA"):
@@ -29,7 +65,7 @@ def Main():
             * plots by Plotly with thanks to this [kaggle notebook](https://www.kaggle.com/mtszkw/technical-indicators-for-trading-stocks)
         ''')
 
-    tickers = tickers_parser(st.text_input('enter stock ticker(s)'), max_items = 1)
+    tickers = tickers_parser(st.text_input('enter stock ticker'), max_items = 1)
     with st.sidebar.beta_expander('timeframe', expanded = True):
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
@@ -53,11 +89,18 @@ def Main():
                 ''')
 
     if tickers:
+        stock_obj = yf.Ticker(tickers)
+        if not valid_stock(stock_obj):
+            st.warning(f'your ticker {tickers} is invalid ')
+            return None
+
         side_config = st.sidebar.beta_expander('charts configure', expanded = False)
         with side_config:
             show_ohlc = st.checkbox('ohlc chart', value = True)
             # b_two_col = st.checkbox('two-column view', value = True)
             chart_size = st.number_input('Chart Size', value = 800, min_value = 400, max_value = 1500, step = 50)
+
+        side_stock_info = get_stock_info_container(stock_obj.info, st_asset= st.sidebar)
 
         data_dict = get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
         data = data_dict['prices'].copy()
@@ -131,7 +174,21 @@ def Main():
                 mkt_class = market_classification(data, period = mkt_class_period,
                                 debug = False) if mkt_class_period else None
                 if mkt_class:
-                    st.write(f'market is `{mkt_class}` for the last **{mkt_class_period} bars**')
+                    side_stock_info.write(f'market is `{mkt_class}` for the last **{mkt_class_period} bars**')
+                    side_stock_info.write(f'[kaufman efficiency_ratio](https://strategyquant.com/codebase/kaufmans-efficiency-ratio-ker/) ({mkt_class_period} bars): `{round(efficiency_ratio(data, period = mkt_class_period),2)}`')
+                st.write('#### Events')
+                do_div = st.checkbox('show ex-dividend dates')
+                if do_div:
+                    data = add_div_col(df_price = data, df_div = stock_obj.dividends)
+                    side_stock_info.write(
+                        stock_obj.dividends[stock_obj.dividends.index > pd.Timestamp(start_date)]
+                        )
+                do_earnings = st.checkbox('show earning dates')
+                if do_earnings and isinstance(stock_obj.calendar, pd.DataFrame):
+                    data = add_event_col(df_price = data,
+                                df_events = stock_obj.calendar.T.set_index('Earnings Date'),
+                                event_col_name= "earnings")
+                    side_stock_info.write(stock_obj.calendar.T)
 
                 if do_MACD and ma_type:
                     st.write("#### Elder's Impulse System")
@@ -170,15 +227,6 @@ def Main():
                         atr_threshold = st.number_input('ATR Threshold', value = 2.0),
                         period = st.number_input('period', value = 22), tail_type = tail_type) \
                         if tail_type else data
-
-        with st.sidebar.beta_expander(tickers, expanded = True):
-            if mkt_class:
-                st.write(f'market is `{mkt_class}` for the last **{mkt_class_period} bars**')
-
-            if tickers.endswith(('.HK', '.TO')):
-                st.write(f'''
-                * [news link](https://www.reuters.com/companies/{tickers}/news)
-                ''')
 
         with st.beta_expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
             # st.subheader('Price Data')
@@ -224,7 +272,7 @@ def Main():
             if plot_target_buy:
                 fig.add_hline(y = avg_pen_dict['buy target T+1'] , line_dash = 'dot', row =1, col = 1)
         # Events
-        for d in ['MACD_Divergence', 'kangaroo_tails']:
+        for d in ['MACD_Divergence', 'kangaroo_tails', 'ex-dividend', 'earnings']:
             if d in data.columns:
                 fig = add_Scatter_Event(fig, data[data.index > pd.Timestamp(start_date)],
                         target_col = d,
