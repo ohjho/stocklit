@@ -10,7 +10,7 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly
 from toolbox.yf_utils import tickers_parser, get_dfs_by_tickers
 from toolbox.plotly_utils import plotly_ohlc_chart
-from toolbox.ta_utils import add_ATR
+from toolbox.ta_utils import add_ATR, add_KER
 from toolbox.hkex_utils import get_lot_size
 from apps.stock_returns import get_yf_data
 
@@ -99,6 +99,9 @@ def Main():
             st.write(pd.DataFrame(results))
 
         with st.beta_expander('View ATR'):
+            # Add KER
+            df_dict = {t: add_KER(df, atr_period) for t,df in df_dict.items()}
+
             # View ATR time series of all given stocks
             atr_dict = { ticker : df['ATR'].dropna().to_dict()
                     for ticker, df in df_dict.items()
@@ -112,5 +115,16 @@ def Main():
                     )
             show_plotly(fig) #, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
+            # View KER
+            KER_dict = { ticker : df['KER'].dropna().to_dict()
+                    for ticker, df in df_dict.items()
+                }
+            df_p = pd.DataFrame.from_dict(KER_dict)
+
+            fig = px.line( df_p,  y = tickers if tickers else df_p.columns,
+                        labels = {'x': 'Date', 'y': 'KER'},
+                        title = f'Historical efficiency ratio ({atr_period} bars)'
+                    )
+            show_plotly(fig)
 if __name__ == '__main__':
     Main()

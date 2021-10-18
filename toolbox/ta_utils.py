@@ -244,6 +244,15 @@ def efficiency_ratio(df, period):
     hilo = df['High'] - df['Low']
     return diff/ hilo[-period:].sum()
 
+def add_KER(df, period, col_name = 'KER'):
+    ''' add Kaufman's efficiency ratio to df
+    '''
+    hilo = df['High'] - df['Low']
+    hilo_sum = hilo.rolling(period).sum()
+    diff = df['Close'].rolling(period).apply(lambda x: abs(x[-1] - x[0]))
+    df['KER'] = diff/hilo_sum
+    return df
+
 def add_peaks(df, date_col = None, order = 3):
     ''' local minima & maxima detection
     Args:
