@@ -8,72 +8,41 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly
 from toolbox.yf_utils import tickers_parser, get_stocks_obj, get_stocks_info
-from toolbox.data_utils import JsonLookUp
+from toolbox.data_utils import JsonReader, JsonLookUp
 
-STOCK_UNIVERSE = [
-    {'name': 'S&P 500', 'index': '^GSPC', 'reference_security': 'SPY',
-        'url': 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies',
-        'df': 0
-    },
-    {'name': 'Hang Seng Index', 'index': '^HSI', 'reference_security': '2800.HK',
-        'url': 'http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HSI',
-        'df': 2
-    },
-    {'name': 'Hang Seng Mid-cap Index', 'index': '^HCM', 'reference_security': '2800.HK',
-        'url': 'http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HCM',
-        'df': 2
-    },
-    {'name': 'US Dividend Kings', 'index': '^DVDKING', 'reference_security': 'SPY',
-        'url': 'https://www.fool.com/investing/stock-market/types-of-stocks/dividend-stocks/dividend-kings/',
-        'df': 0
-    }
-]
+STOCK_UNIVERSE = JsonReader(os.path.join(cwdir,'../data/index_definition.json'))
 
-@st.cache
 def get_index_members(index_name, index_dicts = STOCK_UNIVERSE, limit = None):
     '''
     return a list of yf tickers for the given index
+    references:
+        https://medium.com/wealthy-bytes/5-lines-of-python-to-automate-getting-the-s-p-500-95a632e5e567
+        https://medium.com/financial-data-analysis/step-1-web-scraping-hong-kong-hsi-stock-price-7d8606c07c57
+        https://tcoil.info/build-simple-stock-trading-bot-advisor-in-python/
     '''
-    if index_name == '^GSPC':
-        # ref: https://medium.com/wealthy-bytes/5-lines-of-python-to-automate-getting-the-s-p-500-95a632e5e567
-        tables = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-        df = tables[0]
-        return df['Symbol'].tolist()
-    elif index_name == '^HSI':
-        # see https://tcoil.info/build-simple-stock-trading-bot-advisor-in-python/
-        # tables = pd.read_html('https://finance.yahoo.com/quote/%5EHSI/components/')
-        # df = tables[0]
-        # return df['Symbol'].tolist()
 
-        # see https://medium.com/financial-data-analysis/step-1-web-scraping-hong-kong-hsi-stock-price-7d8606c07c57
-        tables = pd.read_html(requests.get('http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HSI',
-                                       headers={'User-agent': 'Mozilla/5.0'}).text,
-                                       header= 0)
-        df = tables[2]
-        return [str(s).zfill(4)+'.HK' for s in df['Code'].tolist()]
-    elif index_name == '^HCM':
-        tables = pd.read_html(requests.get('http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HCM',
-                                       headers={'User-agent': 'Mozilla/5.0'}).text,
-                                       header= 0)
-        df = tables[2]
-        return [str(s).zfill(4)+'.HK' for s in df['Code'].tolist()]
+    if index_name not in [d['index'] for d in index_dicts]:
+        return None
     else:
-        # TODO: future of this function
-        if index_name not in [d['index'] for d in index_dicts]:
-            return None
-        else:
-            idict = JsonLookUp(index_dicts, searchKey = 'index', searchVal = index_name)
-            tables = pd.read_html(
-                        requests.get(idict['url'], headers={'User-agent': 'Mozilla/5.0'}).text,
-                        header= 0)
-            df = tables[idict['df']]
+        idict = JsonLookUp(index_dicts, searchKey = 'index', searchVal = index_name)
+        tables = pd.read_html(
+                    requests.get(idict['url'], headers={'User-agent': 'Mozilla/5.0'}).text,
+                    header= 0)
+        df = tables[idict['df']]
 
-            # Special Handling
-            if index_name.startswith('^DVD'):
-                df['Symbol'] = df['Company'].apply( lambda x: x.split()[-1].split(":")[-1].replace(")",''))
-                return df['Symbol'].tolist()
-
-            # TODO: apply limit
+        # Special Handling
+        if index_name.startswith('^DVD'):
+            df['Symbol'] = df['Company'].apply( lambda x: x.split()[-1].split(":")[-1].replace(")",''))
+        elif index_name in ['^NDX']:
+            df['Symbol'] = df['Ticker']
+        elif index_name == '^TX60':
+            #TODO: remove columns with NaN
+            #df = df.dropna(by = ['Symbol'])
+            df['Symbol'] = df['Symbol'].apply(lambda x: str(x).replace('.', '-')+'.TO')
+        elif index_name in ['^HSI', '^HCM','^HCL', '^HSTECH', '^H35']:
+            df['Symbol'] = [str(s).zfill(4)+'.HK' for s in df['Code'].tolist()]
+        # TODO: apply limit
+        return df['Symbol'].tolist()
 
 @st.cache
 def get_etf_holdings(etf_ticker, parse = False):
@@ -126,20 +95,8 @@ def get_members_info_df(asset, l_keys = ['symbol', 'longName']):
     df = pd.DataFrame(info_json)
     return df[l_keys]
 
-def GetUserInput(st_asset = st.sidebar):
-    pass
-
-def Main():
-    with st.sidebar.beta_expander("MBRS"):
-        st.info(f'''
-            Getting Indices members and ETFs holdings (coming soon)
-
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
-        ''')
-
-    showIndices(st_asset = st.sidebar)
-
-    with st.sidebar.beta_expander('Load an Index', expanded = True):
+def get_index_tickers(st_asset = st.sidebar):
+    with st_asset:
         l_indices = [d['index'] for d in STOCK_UNIVERSE]
         idx = st.selectbox('Index', options = [''] + l_indices)
 
@@ -150,14 +107,33 @@ def Main():
             st.info(f'''
                 Found {len(l_members)} index members and reference security: {ref_security}
             ''')
+            if st.checkbox('Load members to tickers field', value = False):
+                return ' '.join(l_members)
+            else:
+                return ''
+        else:
+            return ''
+
+def Main():
+    with st.sidebar.beta_expander("MBRS"):
+        st.info(f'''
+            Getting Indices members and ETFs holdings (coming soon)
+
+            * data by [yfinance](https://github.com/ranaroussi/yfinance)
+        ''')
+
+    showIndices(st_asset = st.sidebar)
+    default_tickers = get_index_tickers(
+                        st_asset = st.sidebar.beta_expander('Load an Index', expanded = True)
+                        )
+
+    with st.sidebar.beta_expander('settings', expanded = False):
+        df_height = st.number_input("members' df height", value = 500, min_value = 200)
 
     tickers = tickers_parser(
                 st.text_input("index members' tickers [space separated]",
-                    value = " ".join(l_members) if idx else '')
-                # value = ref_security + " " + " ".join(l_members) if idx else '')
+                    value = default_tickers)
                 )
-    with st.sidebar.beta_expander('settings', expanded = False):
-        df_height = st.number_input("members' df height", value = 500, min_value = 200)
 
     if tickers:
         with st.beta_expander('display keys'):
@@ -181,7 +157,8 @@ def Main():
             st.warning(f'no key selected.')
             return None
 
-        st.subheader(f'Members of `{idx}`')
+        # st.subheader(f'Members of `{idx}`')
+        st.subheader(f'Index Members stats')
         data = get_members_info_df(asset = tickers.split(), l_keys=['symbol'] + l_keys)
         st.dataframe(data, height = df_height)
 

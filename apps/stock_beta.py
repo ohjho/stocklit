@@ -12,7 +12,7 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data
 from toolbox.data_utils import JsonLookUp
-from apps.stock_members import get_index_members, STOCK_UNIVERSE
+from apps.stock_members import get_index_tickers 
 
 @st.cache
 def get_yf_data(tickers, start_date, end_date, interval, group_by = 'column'):
@@ -55,21 +55,12 @@ def Main():
             * sharpe ratio per [this kaggle notebook](https://www.kaggle.com/dimkapoulas/the-sharpe-ratio)
         ''')
 
-    # TODO: Disable this to avoid loading too much data by default (force users to select stocks from MEMBERS)
-    with st.sidebar.beta_expander('Load an Index', expanded = True):
-        l_indices = [d['index'] for d in STOCK_UNIVERSE]
-        idx = st.selectbox('Index', options = [''] + l_indices)
-        if idx:
-            l_members = get_index_members(index_name = idx)
-            ref_security = JsonLookUp(STOCK_UNIVERSE,
-                            searchKey = 'index', searchVal = idx, resultKey = 'reference_security')
-            st.info(f'''
-                Found {len(l_members)} index members and reference security: {ref_security}
-            ''')
-
+    default_tickers = get_index_tickers(
+                        st_asset = st.sidebar.beta_expander('Load an Index', expanded = True)
+                        )
     tickers = tickers_parser(
                 st.text_input('enter stock ticker(s) [space separated]',
-                    value = ref_security + " " + " ".join(l_members) if idx else '')
+                    value = default_tickers)
                 )
     with st.sidebar.beta_expander('settings', expanded = False):
         today = datetime.date.today()
