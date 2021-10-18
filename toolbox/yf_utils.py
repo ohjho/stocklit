@@ -1,3 +1,4 @@
+import os, sys
 import yfinance as yf
 import pandas as pd
 from tqdm import tqdm
@@ -7,6 +8,11 @@ from tqdm import tqdm
 import requests_cache
 SESH = requests_cache.CachedSession('yfinance.cache')
 SESH.headers['User-agent'] = 'my-program/1.0'
+
+#Paths
+# cwdir = os.path.dirname(os.path.realpath(__file__))
+# sys.path.insert(1, os.path.join(cwdir, "../"))
+# from toolbox.data_utils import timed_lru_cache
 
 def valid_stock(stock_obj):
     '''
