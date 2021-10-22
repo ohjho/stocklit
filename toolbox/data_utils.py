@@ -1,4 +1,4 @@
-import os, json, validators, requests, warnings
+import os, json, validators, requests, warnings, re
 import numpy as np
 
 # for cache function
@@ -6,24 +6,24 @@ from functools import lru_cache, wraps
 from datetime import datetime, timedelta
 
 def timed_lru_cache(seconds: int, maxsize: int = 128):
-    ''' add an expiry to the lru_cache
-    ref: https://realpython.com/lru-cache-python/
-    '''
-    def wrapper_cache(func):
-        func = lru_cache(maxsize=maxsize)(func)
-        func.lifetime = timedelta(seconds=seconds)
-        func.expiration = datetime.utcnow() + func.lifetime
+	''' add an expiry to the lru_cache
+	ref: https://realpython.com/lru-cache-python/
+	'''
+	def wrapper_cache(func):
+		func = lru_cache(maxsize=maxsize)(func)
+		func.lifetime = timedelta(seconds=seconds)
+		func.expiration = datetime.utcnow() + func.lifetime
 
-        @wraps(func)
-        def wrapped_func(*args, **kwargs):
-            if datetime.utcnow() >= func.expiration:
-                func.cache_clear()
-                func.expiration = datetime.utcnow() + func.lifetime
-            return func(*args, **kwargs)
+		@wraps(func)
+		def wrapped_func(*args, **kwargs):
+			if datetime.utcnow() >= func.expiration:
+				func.cache_clear()
+				func.expiration = datetime.utcnow() + func.lifetime
+			return func(*args, **kwargs)
 
-        return wrapped_func
+		return wrapped_func
 
-    return wrapper_cache
+	return wrapper_cache
 
 def JsonReader(fname, raise_error = False):
 	'''
@@ -76,3 +76,24 @@ def JsonLookUp(jsonObj, searchKey, searchVal, resultKey= None):
 		return outVal
 	else:
 		return outObj
+
+def get_floats(in_str, as_float = False):
+	''' returns a list of floats for all numbers found in a string
+	'''
+	m = re.findall("\d*\.{0,1}\d+", in_str)
+	return [float(i) if as_float else i for i in m]
+
+def str_to_date(in_str):
+	''' returns a datetime object from a string
+	'''
+	from dateutil.parser import parse
+	import datetime as dt
+	if isinstance(in_str, dt.datetime):
+		return in_str
+	elif isinstance(in_str, dt.date):
+		return dt.datetime.combine(in_str, dt.time())
+	try:
+		d = parse(in_str)
+	except:
+		return None
+	return d
