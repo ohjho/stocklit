@@ -1,8 +1,9 @@
-import os, sys, json
+import os, sys, json, datetime
 import numpy as np
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+from businessdate import BusinessDate
 
 def st_write_dict(data):
     for k, v in data.items():
@@ -45,3 +46,22 @@ def plotly_hist_draw_hline(fig, l_value_format):
     fig.update_layout(
         shapes = l_shapes
         )
+
+def get_timeframe_params(st_asset , data_buffer_tenor = '1y' ):
+    with st_asset:
+        today = datetime.date.today()
+        end_date = st.date_input('Period End Date', value = today)
+        if st.checkbox('pick start date'):
+            start_date = st.date_input('Period Start Date', value = today - datetime.timedelta(days = 365))
+        else:
+            tenor = st.text_input('Period', value = '250b')
+            start_date = (BusinessDate(end_date) - tenor).to_date()
+            st.info(f'period start date: {start_date}')
+        data_start_date = (BusinessDate(start_date) - data_buffer_tenor).to_date()
+        l_interval = ['1d','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1wk','1mo','3mo']
+        interval = st.selectbox('interval', options = l_interval)
+
+    return {
+        'start_date': start_date, 'end_date': end_date,
+        'data_start_date': data_start_date, 'interval': interval
+    }
