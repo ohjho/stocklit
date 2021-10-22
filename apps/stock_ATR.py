@@ -100,7 +100,7 @@ def Main():
 
         with st.beta_expander('View ATR'):
             # Add KER
-            df_dict = {t: add_KER(df, atr_period) for t,df in df_dict.items()}
+            df_dict = {t: add_KER(df, atr_period)[df.index > pd.Timestamp(start_date)] for t,df in df_dict.items()}
 
             # View ATR time series of all given stocks
             atr_dict = { ticker : df['ATR'].dropna().to_dict()
