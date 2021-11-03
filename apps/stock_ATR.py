@@ -24,13 +24,21 @@ def get_ATR_calc(df, period, use_ema, atr_multiplier = 2, var = 1000, price_col 
     data = add_ATR(df,  period = period, use_ema = use_ema, channel_dict = None)
     ATR = data['ATR'][-1]
     price = data[price_col][-1]
-    shares = var / (atr_multiplier * ATR)
+    shares = int(var / (atr_multiplier * ATR)) # Basically always rounding down)
     return {'ATR': ATR,
         price_col : price,
         'ATR%Price': ATR/ price,
         'num_shares': shares,
         'position_size': shares * price
         }
+
+def get_charts_configs(st_asset):
+    with st_asset:
+        n_bins = st.number_input('number of bins (histogram)', value = 100)
+        barmode = st.selectbox('barmode (histogram)', options = ['overlay','stack','relative','group'])
+    return {
+        'n_bins': n_bins, 'barmode': barmode
+    }
 
 def Main():
     with st.sidebar.beta_expander("ATR"):
@@ -98,24 +106,39 @@ def Main():
         with st.beta_expander(f'ATR Results', expanded = True):
             st.write(pd.DataFrame(results))
 
-        with st.beta_expander('View ATR'):
+        with st.beta_expander('Visualize ATR'):
+            chart_configs = get_charts_configs(
+                                st_asset = st.sidebar.beta_expander("Chart Configs")
+                                )
             # Add KER
             df_dict = {t: add_KER(df, atr_period)[df.index > pd.Timestamp(start_date)] for t,df in df_dict.items()}
 
+            norm_atr = st.checkbox('normalize ATR')
             # View ATR time series of all given stocks
-            atr_dict = { ticker : df['ATR'].dropna().to_dict()
-                    for ticker, df in df_dict.items()
+            atr_dict = {
+                ticker : (df['ATR']/df['Close']).dropna().to_dict() \
+                        if norm_atr else df['ATR'].dropna().to_dict()
+                for ticker, df in df_dict.items()
                 }
             df_p = pd.DataFrame.from_dict(atr_dict)
 
+            # tickers Selection
             tickers = st.multiselect(f'ticker', options = [''] + list(df_dict.keys()))
+
+            # ATR Time-Series
             fig = px.line( df_p,  y = tickers if tickers else df_p.columns,
                         labels = {'x': 'Date', 'y': 'ATR'},
                         title = f'Historical Average True Range ({atr_period} bars)'
                     )
             show_plotly(fig) #, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
+            # ATR Histogram
+            fig = px.histogram(df_p, x = tickers if tickers else df_p.columns,
+                    barmode = chart_configs['barmode'],
+                    title = f'Average True Range ({atr_period} bars) Distribution',
+                    nbins = chart_configs['n_bins'])
+            show_plotly(fig)
 
-            # View KER
+            # KER Time-Series
             KER_dict = { ticker : df['KER'].dropna().to_dict()
                     for ticker, df in df_dict.items()
                 }
@@ -126,5 +149,12 @@ def Main():
                         title = f'Historical efficiency ratio ({atr_period} bars)'
                     )
             show_plotly(fig)
+            # KER histogram
+            fig = px.histogram(df_p, x = tickers if tickers else df_p.columns,
+                    barmode = chart_configs['barmode'],
+                    title = f'Efficiency Ratio ({atr_period} bars) Distribution',
+                    nbins = chart_configs['n_bins'])
+            show_plotly(fig)
+
 if __name__ == '__main__':
     Main()
