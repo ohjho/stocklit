@@ -25,6 +25,17 @@ def timed_lru_cache(seconds: int, maxsize: int = 128):
 
 	return wrapper_cache
 
+def is_json(myjson):
+	if myjson is None:
+		return False
+	elif type(myjson) == dict:
+		return True
+	try:
+		jobj = json.loads(myjson)
+	except ValueError as e:
+		return False
+	return True
+
 def JsonReader(fname, raise_error = False):
 	'''
 	Returns the JSON object stored inside the given fname

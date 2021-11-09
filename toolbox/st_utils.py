@@ -5,6 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from businessdate import BusinessDate
 
+from toolbox.data_utils import is_json
+
 def st_write_dict(data):
     for k, v in data.items():
         st.subheader(k)
@@ -47,14 +49,14 @@ def plotly_hist_draw_hline(fig, l_value_format):
         shapes = l_shapes
         )
 
-def get_timeframe_params(st_asset , data_buffer_tenor = '1y' ):
+def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '250b' ):
     with st_asset:
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
         if st.checkbox('pick start date'):
             start_date = st.date_input('Period Start Date', value = today - datetime.timedelta(days = 365))
         else:
-            tenor = st.text_input('Period', value = '250b')
+            tenor = st.text_input('Period', value = default_tenor)
             start_date = (BusinessDate(end_date) - tenor).to_date()
             st.info(f'period start date: {start_date}')
         data_start_date = (BusinessDate(start_date) - data_buffer_tenor).to_date()
@@ -65,3 +67,11 @@ def get_timeframe_params(st_asset , data_buffer_tenor = '1y' ):
         'start_date': start_date, 'end_date': end_date,
         'data_start_date': data_start_date, 'interval': interval
     }
+
+def get_json_edit(in_json, str_msg = 'Please edit your JSON object', text_area_height = 500,
+	json_dumps_kargs = {'indent': 4, 'sort_keys': True}):
+	out_json = st.text_area(
+		str_msg, height = text_area_height,
+		value = json.dumps(in_json, **json_dumps_kargs)
+	)
+	return json.loads(out_json) if is_json(out_json) else None
