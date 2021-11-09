@@ -40,7 +40,8 @@ def add_MACD(df, fast:int= 12, slow:int= 26, signal:int = 9, price_col = "Adj Cl
     return df
 
 def add_ATR(df, period: int = 13, use_ema = False,
-        channel_dict = {'ema_22': [1,2,3]}
+        channel_dict = {'ema_22': [1,2,3]}, col_name = None,
+        return_TR = True, normalize = False
     ):
     '''
     Average True Range
@@ -48,18 +49,29 @@ def add_ATR(df, period: int = 13, use_ema = False,
         channel_dict:
         use_ema: use exponential moving average instead of simple
         channel_dict: name of price and list of ATR multiples to apply
+        col_name: ATR column name, if None default is "ATR"
+        normalize: if true, show ATR and TR as % of Close
     ref: https://www.learnpythonwithrune.org/calculate-the-average-true-range-atr-easy-with-pandas-dataframes/
     ref: https://stackoverflow.com/questions/40256338/calculating-average-true-range-atr-on-ohlc-data-with-python
     '''
+    assert not(all([channel_dict, col_name])), \
+        "channels can only be added on top of the base ATR (not when col_name is provided)"
+    assert col_name not in df.columns, f"{col_name} already exists in input dataframe"
+
     high_low = df['High'] - df['Low']
     high_close = np.abs(df['High'] - df['Close'].shift())
     low_close = np.abs(df['Low'] - df['Close'].shift())
 
     ranges = pd.concat([high_low, high_close, low_close], axis=1)
     true_range = np.max(ranges, axis=1)
-    df['TR'] = true_range
-    df['ATR'] = true_range.ewm(span = period).mean() if use_ema else \
+
+    if return_TR:
+        df['TR'] = true_range
+        df['TR'] /= df['Close'] if normalize else 1
+    col_name = col_name if col_name else 'ATR'
+    df[col_name] = true_range.ewm(span = period).mean() if use_ema else \
                 true_range.rolling(period).mean()
+    df[col_name] /= df['Close'] if normalize else 1
 
     if channel_dict:
         for k, l_channels in channel_dict.items():
