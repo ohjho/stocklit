@@ -41,7 +41,8 @@ def get_ticker_data_with_technicals(
 
 def backtest(df, signal_col, fair_value_col, ticker = None,
              stop_atr_ratio = 1, rr_ratio = 3, breakeven_stop_r = None,
-             trailing_stop_atr = None, profit_retracement = None
+             trailing_stop_atr = None, profit_retracement = None,
+             return_open_trade = False
             ):
     ''' very simple strategy of buying below fair value when signal column equals 1
     exits when low < entry * stop_atr_ratio OR high > entry + ((entry - stop) * rr_ratio)
@@ -77,6 +78,8 @@ def backtest(df, signal_col, fair_value_col, ticker = None,
                 pos['reward'] = row['High']- pos['entry']
                 pos['MAE'] = min([row['Low'] - pos['entry'], pos['MAE']])
 
+                # TODO: add check for Exit Column; then break
+                # manage stops
                 if breakeven_stop_r:
                     pos['stop'] = pos['entry'] \
                         if pos['reward']/pos['risk'] > breakeven_stop_r else pos['stop']
@@ -121,6 +124,10 @@ def backtest(df, signal_col, fair_value_col, ticker = None,
             pos['date'] = i
             if ticker:
                 pos['ticker'] = ticker
+
+    # currently opened position
+    if pos and return_open_trade:
+        l_trades += [pos]
     return l_trades
 
 def analysis_bt(l_trades, n_trading_days = None,
