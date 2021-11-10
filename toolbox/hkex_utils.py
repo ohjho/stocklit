@@ -42,15 +42,18 @@ def get_lot_size(ticker, df_sec = get_hkex_securities_df()):
 		return None
 
 def parse_particular(str_particular,
-		fx_dict = {'$':1, 'USD': 7.77, 'RMB': 1.2}
+		fx_dict = {'$':1, 'USD': 7.77, 'RMB': 1.2, 'HKD': 1},
+		debug = True
 	):
 	'''return a number from the Dividend Particular string
 	'''
 	if 'Div' in str_particular:
 		match_patterns = [
-			"USD\s\d*\.{0,1}\d+\scts",
+			"HKD\s\d*\.{0,1}\d+\s{0,1}(cts|ct)",
+			"HKD\s\d*\.{0,1}\d+",
+			"USD\s\d*\.{0,1}\d+\s{0,1}(cts|ct)",
 			"USD\s\d*\.{0,1}\d+",
-			"RMB\s\d*\.{0,1}\d+\scts",
+			"RMB\s\d*\.{0,1}\d+\s{0,1}(cts|ct)",
 			"RMB\s\d*\.{0,1}\d+",
 			"\d*\.{0,1}\d+\scts",
 			"\$\d*\.{0,1}\d+"
@@ -60,8 +63,15 @@ def parse_particular(str_particular,
 			m = re.search(p, str_particular)
 			if m:
 				m = m.group()
-				if 'cts' in m:
-					m = m.replace(get_floats(m)[0] + " cts" , str(get_floats(m, as_float = True)[0]/100))
+				# Convert ct or cts to decimal
+				if ('cts' in m) or ('ct' in m):
+					m = m.replace('cts','').replace('cts','')
+					m = m.replace(get_floats(m)[0],
+							str(get_floats(m, as_float = True)[0]/100)
+							)
+					# m = m.replace(get_floats(m)[0] + " cts" , str(get_floats(m, as_float = True)[0]/100))
+
+				# apply FX conversion
 				for k, v in fx_dict.items():
 					if k in m:
 						m = get_floats(m, as_float = True)[0] * v
