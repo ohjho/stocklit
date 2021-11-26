@@ -122,8 +122,18 @@ def Main():
                 }
             df_p = pd.DataFrame.from_dict(atr_dict)
 
-            # tickers Selection
-            tickers = st.multiselect(f'ticker', options = [''] + list(df_dict.keys()))
+            # if single ticker, Add ATR moving averages
+            single_ticker = l_tickers[0] if len(df_dict.keys()) == 1 else None
+            if single_ticker:
+                tickers = None
+                str_ma_period = st.text_input('moving averages period (comma-separated for multiple periods)')
+                if str_ma_period:
+                    t = df_p.columns[0]
+                    for p in str_ma_period.split(','):
+                        df_p[f'{p}bars_MA'] = df_p[t].rolling(int(p)).mean().shift()
+            else:
+                # tickers Selection
+                tickers = st.multiselect(f'ticker', options = [''] + list(df_dict.keys()))
 
             # ATR Time-Series
             fig = px.line( df_p,  y = tickers if tickers else df_p.columns,
@@ -132,7 +142,7 @@ def Main():
                     )
             show_plotly(fig) #, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
             # ATR Histogram
-            fig = px.histogram(df_p, x = tickers if tickers else df_p.columns,
+            fig = px.histogram(df_p, x = tickers if tickers else single_ticker,
                     barmode = chart_configs['barmode'],
                     title = f'Average True Range ({atr_period} bars) Distribution',
                     nbins = chart_configs['n_bins'])
@@ -155,6 +165,27 @@ def Main():
                     title = f'Efficiency Ratio ({atr_period} bars) Distribution',
                     nbins = chart_configs['n_bins'])
             show_plotly(fig)
+
+            # Volume
+            volume_dict = {ticker: df['Volume'].dropna().to_dict()
+                            for ticker,df in df_dict.items()}
+            df_p = pd.DataFrame.from_dict(volume_dict)
+            if single_ticker:
+                if str_ma_period:
+                    t = df_p.columns[0]
+                    for p in str_ma_period.split(','):
+                        df_p[f'{p}bars_MA'] = df_p[t].rolling(int(p)).mean().shift()
+
+            volume_scatter = px.line( df_p,  y = tickers if tickers else df_p.columns,
+                        labels = {'x': 'Date', 'y': 'Volume'},
+                        title = f'volume scatter plot'
+                    )
+            volume_hist = px.histogram(df_p, x = tickers if tickers else single_ticker,
+                    barmode = chart_configs['barmode'],
+                    title = f'Volume Distribution',
+                    nbins = chart_configs['n_bins'])
+            show_plotly(volume_scatter)
+            show_plotly(volume_hist)
 
 if __name__ == '__main__':
     Main()
