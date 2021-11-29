@@ -11,12 +11,14 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
-                            add_Scatter, add_Scatter_Event
+                            add_Scatter, add_Scatter_Event, add_color_event_ohlc
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
                             add_ADX, add_Impulse, add_ATR, add_avg_penetration, \
                             market_classification, efficiency_ratio
 from strategies.macd_divergence import detect_macd_divergence
 from strategies.kangaroo_tails import detect_kangaroo_tails
+from strategies.vol_breakout import detect_vol_breakout, detect_volatility_contraction, \
+                                detect_low_vol_pullback, detect_VCP
 from apps.stock_returns import get_yf_data
 
 def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
@@ -146,6 +148,7 @@ def Main():
                 st.write('#### True Range Related')
                 atr_period = st.number_input('Average True Range Period', value = 13)
                 atr_ema = st.checkbox('use EMA for ATR', value = True)
+                show_ATR = st.checkbox('show ATR?', value = False)
                 if ma_type:
                     st.write('##### ATR Channels')
                     atr_ma_name = st.selectbox('select moving average for ATR channel',
@@ -161,6 +164,7 @@ def Main():
                             channel_dict = {atr_ma_name: [float(c) for c in atr_channels.split(',')]} \
                                 if atr_ma_name else None
                             )
+
                 st.write(f'##### Directional System')
                 do_ADX = st.checkbox('Show ADX')
                 data = add_ADX(data, period = st.number_input("ADX period", value = 13)) \
@@ -228,6 +232,41 @@ def Main():
                         period = st.number_input('period', value = 22), tail_type = tail_type) \
                         if tail_type else data
 
+        with st.beta_expander('beta features'):
+            l_col, m_col, r_col = st.beta_columns(3)
+            beta_events_to_plot = []
+            l_events_to_color = []
+            with l_col:
+                st.write(f'#### Vol Breakout')
+                vol_buysell = st.checkbox('Show Buy Signals', value = True)
+                vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
+                ignore_gap = st.checkbox('ignore gap', value = True)
+                data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
+                        threshold = vol_threshold, ignore_volume = False,
+                        do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
+                # beta_events_to_plot.append('vol_breakout')
+                l_events_to_color.append({'column': 'vol_breakout', 'color': 'Aquamarine' if vol_buysell else 'HotPink'})
+
+            with m_col:
+                st.write('#### Low Volatility Pullbacks')
+                lvpb_period = st.number_input('Low Volatility Pullbacks Period', value = 22)
+                data = detect_low_vol_pullback(data, period = lvpb_period, col_name = 'LVPB',
+                        price_col = 'Close') if st.checkbox('show Low Volatility Pullbacks') else data
+                # beta_events_to_plot.append('LVPB')
+                l_events_to_color.append({'column': 'LVPB', 'color': 'LightPink'})
+            with r_col:
+                st.write('#### Volatility Consolidation')
+                VCP_MAs = st.text_input("VCP detection's moving averages (commas-separated)",
+                        value = '100,50,25') if st.checkbox('Detect Volatilitly Contraction') else None
+                VCP_MAs = [int(p) for p in VCP_MAs.split(',')] if VCP_MAs else None
+                data = detect_volatility_contraction(data, ma_cascade = VCP_MAs,
+                        col_name = 'VCP', debug = True) if VCP_MAs else data
+                l_events_to_color.append({'column': 'VCP', 'color': 'LightSkyBlue'})
+                # data = detect_VCP(data, ma_cascade = VCP_MAs,
+                #         lvpb_period = lvpb_period, ATR_period = atr_period,
+                #         col_name = 'VCP_setup', debug_mode = True) if VCP_MAs else data
+                # beta_events_to_plot.append('VCP_setup')
+
         with st.beta_expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
             # st.subheader('Price Data')
             st.write(data)
@@ -257,6 +296,9 @@ def Main():
             st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
         single_ticker = len(l_tickers) == 1
 
+        if not(show_ATR) and 'ATR' in data.columns:
+            del data['ATR']
+
         #TODO: fix tz issue for interval < 1d
         # see: https://stackoverflow.com/questions/16628819/convert-pandas-timezone-aware-datetimeindex-to-naive-timestamp-but-in-certain-t
         fig = plotly_ohlc_chart(
@@ -272,12 +314,17 @@ def Main():
             if plot_target_buy:
                 fig.add_hline(y = avg_pen_dict['buy target T+1'] , line_dash = 'dot', row =1, col = 1)
         # Events
-        for d in ['MACD_Divergence', 'kangaroo_tails', 'ex-dividend', 'earnings']:
+        for d in ['MACD_Divergence', 'kangaroo_tails', 'ex-dividend', 'earnings'] + beta_events_to_plot:
             if d in data.columns:
                 fig = add_Scatter_Event(fig, data[data.index > pd.Timestamp(start_date)],
                         target_col = d,
                         anchor_col = 'Low', textposition = 'bottom center', fontsize = 8,
                         marker_symbol = 'triangle-up', event_label = d[0])
+        # Color Events
+        for d in l_events_to_color:
+            fig = add_color_event_ohlc(fig, data[data.index > pd.Timestamp(start_date)],
+                        condition_col = d['column'], color = d['color']
+                        ) if d['column'] in data.columns else fig
 
         show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
 
