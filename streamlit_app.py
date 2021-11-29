@@ -8,6 +8,7 @@ from apps.stock_beta import Main as BETA
 from apps.stock_members import Main as MBRS
 from apps.stock_ta import Main as TA
 from apps.stock_ATR import Main as ATR
+from apps.stock_DVD_HK import Main as HK_DVD
 
 # TODO:
 # add user tracking https://github.com/jrieke/streamlit-analytics
@@ -32,7 +33,8 @@ def Main():
 		"stock BETA": BETA,
 		# "stock MBRS": MBRS,
 		"stock TA": TA,
-		"stock ATR": ATR
+		"stock ATR": ATR,
+		"stock HK-DVD": HK_DVD
 	}
 
 	app_sw = st.sidebar.selectbox('select app', options = [''] + list(app_dict.keys()))
