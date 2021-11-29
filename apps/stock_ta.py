@@ -232,36 +232,36 @@ def Main():
                         period = st.number_input('period', value = 22), tail_type = tail_type) \
                         if tail_type else data
 
-        with st.beta_expander('beta features'):
-            l_col, m_col, r_col = st.beta_columns(3)
-            beta_events_to_plot = []
-            l_events_to_color = []
-            with l_col:
-                st.write(f'#### Vol Breakout')
-                vol_buysell = st.checkbox('Show Buy Signals', value = True)
-                vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
-                ignore_gap = st.checkbox('ignore gap', value = True)
-                data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
-                        threshold = vol_threshold, ignore_volume = False,
-                        do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
-                # beta_events_to_plot.append('vol_breakout')
-                l_events_to_color.append({'column': 'vol_breakout', 'color': 'Aquamarine' if vol_buysell else 'HotPink'})
-
-            with m_col:
-                st.write('#### Low Volatility Pullbacks')
-                lvpb_period = st.number_input('Low Volatility Pullbacks Period', value = 22)
-                data = detect_low_vol_pullback(data, period = lvpb_period, col_name = 'LVPB',
-                        price_col = 'Close') if st.checkbox('show Low Volatility Pullbacks') else data
-                # beta_events_to_plot.append('LVPB')
-                l_events_to_color.append({'column': 'LVPB', 'color': 'LightPink'})
-            with r_col:
-                st.write('#### Volatility Consolidation')
-                VCP_MAs = st.text_input("VCP detection's moving averages (commas-separated)",
-                        value = '100,50,25') if st.checkbox('Detect Volatilitly Contraction') else None
-                VCP_MAs = [int(p) for p in VCP_MAs.split(',')] if VCP_MAs else None
-                data = detect_volatility_contraction(data, ma_cascade = VCP_MAs,
-                        col_name = 'VCP', debug = True) if VCP_MAs else data
-                l_events_to_color.append({'column': 'VCP', 'color': 'LightSkyBlue'})
+        beta_events_to_plot = []
+        l_events_to_color = []
+        # with st.beta_expander('beta features'):
+        #     l_col, m_col, r_col = st.beta_columns(3)
+        #     with l_col:
+        #         st.write(f'#### Vol Breakout')
+        #         vol_buysell = st.checkbox('Show Buy Signals', value = True)
+        #         vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
+        #         ignore_gap = st.checkbox('ignore gap', value = True)
+        #         data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
+        #                 threshold = vol_threshold, ignore_volume = False,
+        #                 do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
+        #         # beta_events_to_plot.append('vol_breakout')
+        #         l_events_to_color.append({'column': 'vol_breakout', 'color': 'Aquamarine' if vol_buysell else 'HotPink'})
+        #
+        #     with m_col:
+        #         st.write('#### Low Volatility Pullbacks')
+        #         lvpb_period = st.number_input('Low Volatility Pullbacks Period', value = 22)
+        #         data = detect_low_vol_pullback(data, period = lvpb_period, col_name = 'LVPB',
+        #                 price_col = 'Close') if st.checkbox('show Low Volatility Pullbacks') else data
+        #         # beta_events_to_plot.append('LVPB')
+        #         l_events_to_color.append({'column': 'LVPB', 'color': 'LightPink'})
+        #     with r_col:
+        #         st.write('#### Volatility Consolidation')
+        #         VCP_MAs = st.text_input("VCP detection's moving averages (commas-separated)",
+        #                 value = '100,50,25') if st.checkbox('Detect Volatilitly Contraction') else None
+        #         VCP_MAs = [int(p) for p in VCP_MAs.split(',')] if VCP_MAs else None
+        #         data = detect_volatility_contraction(data, ma_cascade = VCP_MAs,
+        #                 col_name = 'VCP', debug = True) if VCP_MAs else data
+        #         l_events_to_color.append({'column': 'VCP', 'color': 'LightSkyBlue'})
                 # data = detect_VCP(data, ma_cascade = VCP_MAs,
                 #         lvpb_period = lvpb_period, ATR_period = atr_period,
                 #         col_name = 'VCP_setup', debug_mode = True) if VCP_MAs else data
