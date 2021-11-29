@@ -58,6 +58,28 @@ def add_channel_trace(fig, df, ch_cols, date_col = None, rgb_tup = (255,222,0)):
 
     return fig
 
+def add_color_event_ohlc(fig, df, color, condition_col, date_col = None,
+        ohlc_col_map = {'o':'Open', 'h':'High', 'l': 'Low', 'c':'Close'}
+    ):
+    '''color the given column (condition_col) on the ohlc trace
+    Args:
+        color: css color name
+    '''
+    df_c = df[df[condition_col] == 1]
+    fig.add_trace(
+        go.Candlestick( x = df_c[date_col] if date_col else df_c.index,
+            open = df_c[ohlc_col_map['o']],
+            high = df_c[ohlc_col_map['h']],
+            low = df_c[ohlc_col_map['l']],
+            close = df_c[ohlc_col_map['c']],
+            name = condition_col,
+            increasing_line_color = color,
+            decreasing_line_color = color
+            ),
+        row = 1, col = 1
+    )
+    return fig
+
 def add_impulse_trace(fig, df, date_col = None,
         ohlc_col_map = {'o':'Open', 'h':'High', 'l': 'Low', 'c':'Close'},
         l_rgb_css_color_name = ['red', 'green', 'DodgerBlue']
@@ -177,12 +199,12 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
     date_serie = df[date_col] if date_col else df.index
     if vol_col:
         row_count = 2
-        row_count += 1 if "MACD_histogram" in df.columns else 0
-        row_count += 1 if "A/D" in df.columns else 0
-        row_count += 1 if "OBV" in df.columns else 0
-        row_count += 1 if 'RSI' in df.columns else 0
-        row_count += 1 if 'ADX' in df.columns else 0
+        auto_subplot_col = ['MACD_histogram', 'A/D', 'OBV', 'RSI', 'ADX', 'ATR']
+        for c in auto_subplot_col:
+            row_count += 1 if c in df.columns else 0
+
         row_heights = [0.7] + [0.2 for i in range(row_count-1)]
+
         # Create figure with secondary y-axis
         fig = make_subplots(rows = row_count, cols = 1, shared_xaxes= True,
                 vertical_spacing= 0.03,
@@ -238,35 +260,26 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
 
     # Check for additional TA subplots
     ref_row = 2 if vol_col else 1
-    if 'MACD_histogram' in df.columns:
-        ref_row += 1
-        fig.append_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
-            row = ref_row, col = 1)
-        # fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal'),
-        #     row = 3, col = 1)
-
-    if 'A/D' in df.columns:
-        ref_row += 1
-        fig.append_trace(go.Scatter(x = date_serie, y = df['A/D'], name = 'A/D'),
-            row = ref_row, col = 1)
-
-    if 'OBV' in df.columns:
-        ref_row += 1
-        fig.append_trace(go.Scatter(x = date_serie, y = df['OBV'], name = 'OBV'),
-            row = ref_row, col = 1)
-
-    if 'RSI' in df.columns:
-        ref_row += 1
-        fig.append_trace(go.Scatter(x = date_serie, y = df['RSI'], name = 'RSI'),
-            row = ref_row, col = 1)
-        fig.add_hline(y = tup_rsi_hilo[1], line_dash = 'dot',
-            row = ref_row, col = 1)
-        fig.add_hline(y = tup_rsi_hilo[0], line_dash = 'dot',
-            row = ref_row, col = 1)
-
-    if 'ADX' in df.columns:
-        ref_row += 1
-        fig = add_ADX_trace(fig, df, ref_row = ref_row, date_col = date_col)
+    for c in auto_subplot_col:
+        if c in df.columns:
+            ref_row += 1
+            if c == 'RSI':
+                fig.append_trace(go.Scatter(x = date_serie, y = df['RSI'], name = 'RSI'),
+                    row = ref_row, col = 1)
+                fig.add_hline(y = tup_rsi_hilo[1], line_dash = 'dot',
+                    row = ref_row, col = 1)
+                fig.add_hline(y = tup_rsi_hilo[0], line_dash = 'dot',
+                    row = ref_row, col = 1)
+            elif c == 'ADX':
+                fig = add_ADX_trace(fig, df, ref_row = ref_row, date_col = date_col)
+            elif c == 'MACD_histogram':
+                fig.append_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
+                    row = ref_row, col = 1)
+                # fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal'),
+                #     row = 3, col = 1)
+            else: # very simple scatter plot
+                fig.append_trace(go.Scatter(x = date_serie, y = df[c], name = c),
+                    row = ref_row, col = 1)
 
     #TODO: hide range outside trading hours: https://stackoverflow.com/a/65632833/14285096
     return fig
