@@ -5,6 +5,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from businessdate import BusinessDate
 
+#Paths
+cwdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.data_utils import is_json
 
 def st_write_dict(data):
