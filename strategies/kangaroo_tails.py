@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 def detect_kangaroo_tails(df, col_name = 'kangaroo_tails',
-        atr_threshold = 2, period = 13, hilo_col_name_tup = ('High','Low'),
-        tail_type = 0, debug = False
+        atr_threshold: int = 2, period: int = 13, hilo_col_name_tup = ('High','Low'),
+        tail_type:int = 0, debug = False
     ):
     ''' add a new column to the df when 1 indicates a kangaroo tail
     on the previous bar

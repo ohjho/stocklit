@@ -98,7 +98,7 @@ def add_OBV(df):
     df['OBV'] = obv
     return df
 
-def add_RSI(df, n = 14, price_col = 'Close'):
+def add_RSI(df, n:int = 14, price_col = 'Close'):
     '''RSI
     ref: https://stackoverflow.com/a/57037866/14285096
     '''
@@ -169,7 +169,7 @@ def add_Impulse(df, ema_name, MACD_Hist_name = "MACD_histogram"):
     return df
 
 def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ema_11',
-        num_of_bars = 30, use_ema = False, ignore_zero = True, coef = 1,
+        num_of_bars:int = 30, use_ema = False, ignore_zero = True, coef = 1,
         get_df = True, debug = False):
     ''' Calculate the average pentration below & above the fair and
         return buy and sell SafeZones
@@ -226,7 +226,7 @@ def add_avg_penetration(df, hilo_col_names = ('High','Low'), fair_col = 'ema_11'
         # 'buy_target_t+1': expected_fair - df_['avg_lp'][-1]
     }
 
-def market_classification(df, period, debug = False,
+def market_classification(df, period:int, debug = False,
         class_names_map = {0: 'rangebound', 1: 'trending-up', -1: 'trending-down'} ):
     ''' detect trending-up, trending-down, or rangebound
     '''
@@ -249,14 +249,14 @@ def market_classification(df, period, debug = False,
     mkt_cls = 1 if hh and hl else mkt_cls
     return class_names_map[mkt_cls] if class_names_map else mkt_cls
 
-def efficiency_ratio(df, period):
+def efficiency_ratio(df, period: int):
     '''efficiency is defined as (close_t - close_0)/ sum(daily_hilo)
     '''
     diff = abs(df['Close'][-1] - df['Close'][-period])
     hilo = df['High'] - df['Low']
     return diff/ hilo[-period:].sum()
 
-def add_KER(df, period, col_name = 'KER'):
+def add_KER(df, period:int, col_name = 'KER'):
     ''' add Kaufman's efficiency ratio to df
     '''
     hilo = df['High'] - df['Low']

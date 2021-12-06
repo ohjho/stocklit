@@ -1,5 +1,6 @@
-streamlit==0.80.0
+streamlit==1.2.0
 stqdm>=0.0.2
+streamlit-pydantic==0.5.0
 notebook>=6.4.1
 PyYAML==5.4
 pandas==1.0.5
