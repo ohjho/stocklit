@@ -189,13 +189,13 @@ def show_past_div(df, st_asset, timeframe_params, atr_period):
         visualize_dvd_df(df.dropna(subset= ['Div','ATR_ex-1']))
 
 def Main():
-    with st.sidebar.beta_expander("DVD_HK"):
+    with st.sidebar.expander("DVD_HK"):
         st.info(f'''
             Hong Kong Listed Stocks Upcoming Dividends
             ''')
 
     default_tickers = get_index_tickers(
-                        st_asset = st.sidebar.beta_expander('Load an Index', expanded = True)
+                        st_asset = st.sidebar.expander('Load an Index', expanded = True)
                         )
     tickers = tickers_parser(
                 st.text_input('enter stock ticker(s) [space separated]',
@@ -203,18 +203,18 @@ def Main():
                 return_list = True
                 )
     timeframe_params = get_timeframe_params(
-                            st_asset = st.sidebar.beta_expander("Timeframe"),
+                            st_asset = st.sidebar.expander("Timeframe"),
                             default_tenor = '50y'
                         )
     if tickers:
         # - div history with ex-date true range vs div amount/ true range
         df = get_dvd(tickers, ex_date_after = timeframe_params['end_date'],
                 aggregate = True)
-        show_upcoming_div(df, st_asset = st.beta_expander("View Upcoming Dividend", expanded = True),
+        show_upcoming_div(df, st_asset = st.expander("View Upcoming Dividend", expanded = True),
             timeframe_params= timeframe_params, atr_period= 22)
 
         df_all = get_dvd(tickers, aggregate = True)
-        show_past_div(df_all, st_asset = st.beta_expander("View Pass Dividend"),
+        show_past_div(df_all, st_asset = st.expander("View Pass Dividend"),
             timeframe_params = timeframe_params, atr_period= 22)
 
 
