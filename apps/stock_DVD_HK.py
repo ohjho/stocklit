@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 from businessdate import BusinessDate
 from stqdm import stqdm
 
@@ -82,8 +83,15 @@ def visualize_dvd_df(df_dvd):
         show_plotly(fig)
 
     if 'TR_ex' in df_dvd.columns:
+        max_Div_delta = int(max([df_dvd['TR_ex'].max(), df_dvd['Div'].max()]))
         fig = px.scatter(df_dvd, x = 'TR_ex', y = 'Div', color = 'ticker',
                 title = f'Div vs True Range (on ex-date)')#, hover_data = [''])
+        fig.add_trace(
+            go.Scatter(x =[0, max_Div_delta] , y = [0, max_Div_delta], name ='break-even' ,
+                marker_symbol = 'x-thin',marker_size = 1,
+                line = {'dash': 'solid', 'color': 'GhostWhite', 'width': 0.5}),
+            row =1, col =1
+        )
         show_plotly(fig)
 
     if 'capture_r_multiplier' in df_dvd.columns:
