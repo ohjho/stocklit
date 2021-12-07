@@ -19,7 +19,7 @@ def Main():
 	show_logo()
 	# st.sidebar.header('OpenTerminal')
 	# st.sidebar.subheader('information symmetry for all')
-	with st.sidebar.beta_expander("OpenTerminal"):
+	with st.sidebar.expander("OpenTerminal"):
 		st.info(f'''
 		[information symmetry](https://en.wikipedia.org/wiki/Information_asymmetry) for all
 
@@ -34,7 +34,7 @@ def Main():
 		# "stock MBRS": MBRS,
 		"stock TA": TA,
 		"stock ATR": ATR,
-		"stock HK-DVD": HK_DVD
+		# "stock HK-DVD": HK_DVD
 	}
 
 	app_sw = st.sidebar.selectbox('select app', options = [''] + list(app_dict.keys()))
