@@ -53,11 +53,10 @@ def get_stocks_data(tickers, session = SESH,
         yf_download_params: passed straight to yf.download, see https://github.com/ranaroussi/yfinance
     '''
     if yf_download_params['interval'] == '1wk':
-        print(f'converting daily prices to weekly with internal method df_to_weekly()')
+        print(f'converting daily prices to weekly with internal method df_to_weekly() for {tickers}')
         yf_download_params['interval'] == '1d'
-        prices_df = df_to_weekly(
-            df_daily = yf.download(tickers = tickers, session = SESH, **yf_download_params)
-        )
+        df_daily = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+        prices_df = df_to_weekly(df_daily = df_daily) if len(df_daily)>0 else df_daily
     else:
         prices_df = yf.download(tickers = tickers, session = SESH, **yf_download_params)
 
