@@ -121,6 +121,24 @@ def add_ADX_trace(fig, df, ref_row, ref_col = 1, date_col = None,
             row = ref_row, col = ref_col)
     return fig
 
+def add_MACD_trace(fig, df, ref_row, ref_col = 1, date_col = None, draw_signal_line = True):
+    for c in ['MACD', 'MACD_histogram', 'MACD_signal']:
+        assert c in df.columns, f"required column {c} is missing from input df"
+
+    date_serie = df[date_col] if date_col else df.index
+
+    if draw_signal_line:
+        fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal', line = {'color': 'DarkGrey'}),
+            row = ref_row, col = 1)
+        fig.add_trace(go.Scatter(x = df.index, y = df['MACD'], name = 'MACD', line = {'color': 'Gold'}),
+            row = ref_row, col = 1)
+        fig.add_trace(go.Scatter(x = df.index, y = [0 for i in df.index], name = 'MACD_0', line = {'color': 'Grey'}),
+            row = ref_row, col = 1)
+    else:
+        fig.append_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
+            row = ref_row, col = 1)
+    return fig
+
 def add_Scatter(fig, df, target_col, date_col = None):
     date_serie = df[date_col] if date_col else df.index
     fig.append_trace(
@@ -197,9 +215,9 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
         b_fill_channel: fill channels with color instead of having dash line
     '''
     date_serie = df[date_col] if date_col else df.index
+    auto_subplot_col = ['MACD_histogram', 'MACD', 'A/D', 'OBV', 'RSI', 'ADX', 'ATR']
     if vol_col:
         row_count = 2
-        auto_subplot_col = ['MACD_histogram', 'A/D', 'OBV', 'RSI', 'ADX', 'ATR']
         for c in auto_subplot_col:
             row_count += 1 if c in df.columns else 0
 
@@ -273,10 +291,9 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
             elif c == 'ADX':
                 fig = add_ADX_trace(fig, df, ref_row = ref_row, date_col = date_col)
             elif c == 'MACD_histogram':
-                fig.append_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
-                    row = ref_row, col = 1)
-                # fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal'),
-                #     row = 3, col = 1)
+                fig = add_MACD_trace(fig, df, ref_row = ref_row, date_col = date_col, draw_signal_line = False)
+            elif c == 'MACD':
+                fig = add_MACD_trace(fig, df, ref_row = ref_row, date_col = date_col, draw_signal_line = True)
             else: # very simple scatter plot
                 fig.append_trace(go.Scatter(x = date_serie, y = df[c], name = c),
                     row = ref_row, col = 1)
