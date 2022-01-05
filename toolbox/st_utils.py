@@ -4,6 +4,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 from businessdate import BusinessDate
+import streamlit_pydantic as sp
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
@@ -56,6 +57,7 @@ def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '2
     with st_asset:
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
+        tenor = None
         if st.checkbox('pick start date'):
             start_date = st.date_input('Period Start Date', value = today - datetime.timedelta(days = 365))
         else:
@@ -68,7 +70,8 @@ def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '2
 
     return {
         'start_date': start_date, 'end_date': end_date,
-        'data_start_date': data_start_date, 'interval': interval
+        'data_start_date': data_start_date, 'interval': interval,
+        'tenor': tenor
     }
 
 def get_json_edit(in_json, str_msg = 'Please edit your JSON object', text_area_height = 500,
@@ -78,3 +81,30 @@ def get_json_edit(in_json, str_msg = 'Please edit your JSON object', text_area_h
 		value = json.dumps(in_json, **json_dumps_kargs)
 	)
 	return json.loads(out_json) if is_json(out_json) else None
+
+def get_sp_data(form_key, data_model, st_asset, submit_label = 'Submit',
+    do_cache = False, **kwargs):
+    ''' Create a form in ST using streamlit_pydantic and
+        return the resulting data object in dictionary form
+    '''
+    if do_cache:
+        cache_key = f'{form_key}_cache'
+        with st_asset.form(key = form_key):
+            st.markdown(f'#### {form_key} params')
+            input_data = sp.pydantic_input(key = form_key,  model = data_model, **kwargs)
+            submitted = st.form_submit_button(label = submit_label if submit_label else 'Submit')
+        if submitted:
+            data = input_data
+            st.session_state[cache_key] = data
+        else:
+            data = st.session_state[cache_key] if cache_key in st.session_state else None
+    else:
+        with st_asset:
+            data = sp.pydantic_form(key = form_key, model = data_model,
+                    submit_label = submit_label, **kwargs)
+    return data
+
+def add_clear_cache_button(st_asset):
+    if st_asset.button('Clear cached results'):
+        st.legacy_caching.clear_cache()
+        st_asset.success("Cleared Cached Results")
