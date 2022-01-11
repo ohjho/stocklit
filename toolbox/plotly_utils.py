@@ -129,14 +129,22 @@ def add_MACD_trace(fig, df, ref_row, ref_col = 1, date_col = None, draw_signal_l
 
     if draw_signal_line:
         fig.add_trace(go.Scatter(x = df.index, y = df['MACD_signal'], name = 'MACD_signal', line = {'color': 'DarkGrey'}),
-            row = ref_row, col = 1)
+            row = ref_row, col = ref_col)
         fig.add_trace(go.Scatter(x = df.index, y = df['MACD'], name = 'MACD', line = {'color': 'Gold'}),
-            row = ref_row, col = 1)
+            row = ref_row, col = ref_col)
         fig.add_trace(go.Scatter(x = df.index, y = [0 for i in df.index], name = 'MACD_0', line = {'color': 'Grey'}),
-            row = ref_row, col = 1)
+            row = ref_row, col = ref_col)
+
+        # can't put histogram on because requires secondary_y in spec during make_subplots()
+        # fig.add_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
+        #     row = ref_row, col = 1, secondary_y = True)
+
+        # applying ranges to yaxis makes the signal line plot look sad
+        # fig.update_yaxes(range=[df['MACD_histogram'].min(), df['MACD_histogram'].max()],
+        #     row= ref_row, col=1)
     else:
         fig.append_trace(go.Bar(x = date_serie, y = df['MACD_histogram'], name = 'MACD_histogram'),
-            row = ref_row, col = 1)
+            row = ref_row, col = ref_col)
     return fig
 
 def add_Scatter(fig, df, target_col, date_col = None):
@@ -228,8 +236,6 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
                 vertical_spacing= 0.03,
                 subplot_titles = ['OHLC','Volume'] if not show_legend else None,
                 row_heights = row_heights)
-
-
 
         # include candlestick with rangeselector
         fig.add_trace(go.Candlestick(x= date_serie,
