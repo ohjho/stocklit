@@ -1,14 +1,18 @@
+import os, sys
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.express as px
 
+#Paths
+cwdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.yf_utils import valid_stock, tickers_parser
 from toolbox.plotly_utils import plotly_ohlc_chart
 
 def Main():
     ticker = tickers_parser(st.text_input('enter a stock ticker'), max_items = 1)
-    with st.sidebar.beta_expander("DESC"):
+    with st.sidebar.expander("DESC"):
         st.info(f'''
             Historical Stock Price by [yfinance](https://github.com/ranaroussi/yfinance)
             * [yahoo finance ticker lookup](https://finance.yahoo.com/lookup)
@@ -17,7 +21,7 @@ def Main():
 
     if ticker:
         # ticker = ticker.split('.')[0].zfill(4) + '.HK' if '.HK' in ticker.upper() else ticker
-        side_config = st.sidebar.beta_expander('configure', expanded = True)
+        side_config = st.sidebar.expander('configure', expanded = True)
         with side_config:
             show_ohlc = st.checkbox('ohlc chart', value = True)
             show_volume = st.checkbox('show volume', value = True)
@@ -25,9 +29,9 @@ def Main():
             chart_size = st.number_input('Chart Size', value = 500, min_value = 400, max_value = 1500)
 
         if b_two_col:
-            col1, col2 = st.beta_columns((2,1))
+            col1, col2 = st.columns((2,1))
         else:
-            col1 = col2 = st.beta_container()
+            col1 = col2 = st.container()
 
         stock = yf.Ticker(ticker)
         if not valid_stock(stock):
@@ -41,7 +45,7 @@ def Main():
 
         with col1:
             stock_info = stock.info
-            with st.beta_expander(f'Stock Info for {stock_info["longName"]}'):
+            with st.expander(f'Stock Info for {stock_info["longName"]}'):
                 str_desc = f'[:link:]({stock_info["website"]}) ' \
                             if 'website' in stock_info.keys() else ''
                 str_desc += stock_info["longBusinessSummary"] \
@@ -56,7 +60,7 @@ def Main():
                                 min_value = 5, max_value = len(df_all))
             df_all = df_all.tail(number_td)
 
-            with st.beta_expander('Price Chart', expanded = True):
+            with st.expander('Price Chart', expanded = True):
                 if show_ohlc:
                     fig = plotly_ohlc_chart(df = df_all, vol_col = 'Volume' if show_volume else None)
                 else:
@@ -68,7 +72,7 @@ def Main():
                     template = 'plotly_dark')
                 st.plotly_chart(fig, use_container_width = True, height = chart_size)
 
-            with st.beta_expander('Historical Prices'):
+            with st.expander('Historical Prices'):
                 st.dataframe(df_all)
 
             # High, Low, Open, Close, Volume, Adj Close
@@ -76,64 +80,67 @@ def Main():
             # st.dataframe(trading_data)
 
             # show actions (dividends, splits)
-            with st.beta_expander("Corporate Actions"):
+            with st.expander("Corporate Actions"):
                 st.dataframe(stock.actions)
 
             # show dividends
-            with st.beta_expander("Dividends"):
+            with st.expander("Dividends"):
                 st.dataframe(stock.dividends)
 
             # show splits
-            with st.beta_expander("Splits"):
+            with st.expander("Splits"):
                 st.dataframe(stock.splits)
 
         with col2:
             # show financials
-            with st.beta_expander("Financials"):
+            with st.expander("Financials"):
                 st.write(stock.financials)
                 # msft.quarterly_financials
 
             # show major holders
-            with st.beta_expander("Major Holders"):
+            with st.expander("Major Holders"):
                 st.dataframe(stock.major_holders)
 
             # show institutional holders
-            with st.beta_expander("Institutional Holders"):
+            with st.expander("Institutional Holders"):
                 st.dataframe(stock.institutional_holders)
 
             # show balance sheet
-            with st.beta_expander("Balance Sheet"):
+            with st.expander("Balance Sheet"):
                 st.write(stock.balance_sheet)
                 # msft.quarterly_balance_sheet
 
             # show cashflow
-            with st.beta_expander("Cashflow"):
+            with st.expander("Cashflow"):
                 st.write(stock.cashflow)
                 # msft.quarterly_cashflow
 
             # show earnings
-            with st.beta_expander("Earnings"):
+            with st.expander("Earnings"):
                 st.write(stock.earnings)
                 # msft.quarterly_earnings
 
             # show sustainability
-            with st.beta_expander("Sustainability"):
-                st.dataframe(stock.sustainability)
+            with st.expander("Sustainability"):
+                # this is a df issue on ST side:
+                # https://discuss.streamlit.io/t/after-upgrade-to-the-latest-version-now-this-error-id-showing-up-arrowinvalid/15794/24
+                # print(type(stock.sustainability))
+                st.write(stock.sustainability)
 
             # show analysts recommendations
-            with st.beta_expander("Analysts Recommendations"):
+            with st.expander("Analysts Recommendations"):
                 # TODO:
                 # 1. set "Firm" as index
                 # 2. turn datetime index as a col
                 st.dataframe(stock.recommendations)
 
             # show next event (earnings, etc)
-            with st.beta_expander("Calendar"):
+            with st.expander("Calendar"):
                 if isinstance(stock.calendar, pd.DataFrame):
                     st.dataframe(stock.calendar.T)
 
             # show ISIN code - *experimental*
-            # with st.beta_expander("ISIN (experimental)"):
+            # with st.expander("ISIN (experimental)"):
             # ISIN = International Securities Identification Number
                 # print(stock.isin)
                 # print(type(stock.isin))

@@ -12,7 +12,7 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data
 from toolbox.data_utils import JsonLookUp
-from apps.stock_members import get_index_tickers 
+from apps.stock_members import get_index_tickers
 
 @st.cache
 def get_yf_data(tickers, start_date, end_date, interval, group_by = 'column'):
@@ -47,7 +47,7 @@ def get_betas(df_returns, benchmark_col):
     return results
 
 def Main():
-    with st.sidebar.beta_expander("BETA"):
+    with st.sidebar.expander("BETA"):
         st.info(f'''
             Beta Analysis vs Benchmark Security:
 
@@ -56,13 +56,13 @@ def Main():
         ''')
 
     default_tickers = get_index_tickers(
-                        st_asset = st.sidebar.beta_expander('Load an Index', expanded = True)
+                        st_asset = st.sidebar.expander('Load an Index', expanded = True)
                         )
     tickers = tickers_parser(
                 st.text_input('enter stock ticker(s) [space separated]',
                     value = default_tickers)
                 )
-    with st.sidebar.beta_expander('settings', expanded = False):
+    with st.sidebar.expander('settings', expanded = False):
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
         if st.checkbox('pick start date'):
@@ -76,7 +76,7 @@ def Main():
         interval = st.selectbox('interval', options = l_interval)
 
     if tickers:
-        side_config = st.sidebar.beta_expander('charts configure', expanded = False)
+        side_config = st.sidebar.expander('charts configure', expanded = False)
         with side_config:
             show_ohlc = st.checkbox('ohlc chart', value = True)
             # b_two_col = st.checkbox('two-column view', value = True)
@@ -86,7 +86,7 @@ def Main():
         data_dict = get_yf_data(tickers, start_date = start_date, end_date = end_date, interval = interval)
         df_returns = data_dict['returns'].copy()
 
-        with st.beta_expander('view returns data'):
+        with st.expander('view returns data'):
             st.subheader('Returns')
             st.write(df_returns)
 
@@ -94,7 +94,7 @@ def Main():
         if len(l_tickers) != len(tickers.split(' ')):
             st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
 
-        l_col, r_col = st.beta_columns(2)
+        l_col, r_col = st.columns(2)
         with l_col:
             benchmark_ticker = st.selectbox('benchmark security', options = tickers.split())
             beta_json = get_betas(df_returns, benchmark_col = benchmark_ticker.upper())
@@ -105,7 +105,7 @@ def Main():
             y_var = st.selectbox('y-axis variable', options = plot_var_options)
             x_var = st.selectbox('x-axis variable', options = plot_var_options)
 
-        with st.beta_expander('Betas Calcuation'):
+        with st.expander('Betas Calcuation'):
             st.write(beta_df)
 
         fig = px.scatter(beta_df, x = x_var, y = y_var, color = 'ticker')

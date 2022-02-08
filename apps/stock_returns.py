@@ -1,3 +1,4 @@
+import os, sys
 import streamlit as st
 import datetime
 import yfinance as yf
@@ -5,6 +6,9 @@ import pandas as pd
 import plotly.express as px
 from businessdate import BusinessDate
 
+#Paths
+cwdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data
 from toolbox.plotly_utils import plotly_ohlc_chart
@@ -21,7 +25,7 @@ def compare_returns(df_returns, df_prices, chart_size = 500):
     plot multi stocks returns in ST using PX
     '''
     l_tickers = df_returns.columns.tolist()
-    l_col , r_col = st.beta_columns(2)
+    l_col , r_col = st.columns(2)
 
     # returns
     fig = px.line(df_returns, y = df_returns.columns.tolist(),
@@ -60,7 +64,7 @@ def plot_returns(df_returns, df_prices, target_ticker,
     plot target_ticker returns in ST using PX
     '''
     # TODO: remove show_ohlc arg
-    l_col , r_col = st.beta_columns(2)
+    l_col , r_col = st.columns(2)
 
     # returns
     fig = px.line(df_returns, y = target_ticker,
@@ -120,7 +124,7 @@ def plot_returns(df_returns, df_prices, target_ticker,
     show_plotly(fig, height = chart_size, st_asset = r_col)
 
 def Main():
-    with st.sidebar.beta_expander("RT"):
+    with st.sidebar.expander("RT"):
         st.info(f'''
             Stock Return Analysis:
 
@@ -130,7 +134,7 @@ def Main():
         ''')
 
     tickers = tickers_parser(st.text_input('enter stock ticker(s) [space separated]'))
-    with st.sidebar.beta_expander('settings', expanded = True):
+    with st.sidebar.expander('settings', expanded = True):
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
         if st.checkbox('pick start date'):
@@ -146,7 +150,7 @@ def Main():
             st.warning(f'intraday data cannot extend last 60 days')
 
     if tickers:
-        side_config = st.sidebar.beta_expander('charts configure', expanded = False)
+        side_config = st.sidebar.expander('charts configure', expanded = False)
         with side_config:
             # show_ohlc = st.checkbox('ohlc chart', value = True)
             # b_two_col = st.checkbox('two-column view', value = True)
@@ -159,7 +163,7 @@ def Main():
         data = data_dict['prices'].copy()
         df_return = data_dict['returns'].copy()
 
-        with st.beta_expander('raw data'):
+        with st.expander('raw data'):
             st.subheader('Price Data')
             st.write(data)
             st.subheader('Returns')
@@ -170,13 +174,13 @@ def Main():
             st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
         single_ticker = len(l_tickers) == 1
 
-        l_col , r_col = st.beta_columns(2)
+        l_col , r_col = st.columns(2)
         with l_col:
             target_ticker = st.selectbox('Analyze', options = l_tickers if single_ticker else [''] + l_tickers)
 
         if target_ticker:
             with r_col:
-                with st.beta_expander(f'{target_ticker} descriptive stats'):
+                with st.expander(f'{target_ticker} descriptive stats'):
                     st.write(df_return[target_ticker].describe())
 
             if single_ticker:
