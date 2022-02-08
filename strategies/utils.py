@@ -18,12 +18,14 @@ def get_ticker_data_with_technicals(
         ticker:str, interval:str = '1d', trade_date = datetime.date.today(),
         tenor:str = '2y', data_buffer_tenor:str = '1y',
         l_ma_periods:list = [22,11],
-        atr_params = {'period': 13, 'use_ema': True, 'channel_dict' : None}
+        atr_params = {'period': 13, 'use_ema': True, 'channel_dict' : None},
+        return_all_dates = False
         ):
     ''' Get Price Data for a Ticker and add various Technical Indicators intended for
     trend following strategies backtesting/ screening
     Args:
         l_ma_periods: list of moving averages periods to add
+        return_all_dates: if False, return only data from start_date
     '''
     start_date = (BusinessDate(trade_date)- tenor).to_date()
     data_start_date = (BusinessDate(start_date) - data_buffer_tenor).to_date()
@@ -37,7 +39,46 @@ def get_ticker_data_with_technicals(
         df = add_moving_average(df, period = p, type = 'ema')
     df = add_MACD(df)
     df = add_ATR(df, **atr_params) if atr_params else df
-    return df[df.index > pd.Timestamp(start_date)]
+    return df if return_all_dates else df[df.index > pd.Timestamp(start_date)]
+
+def add_stops_trailing(df, trade_date, entry_price, init_stop, trailing_atr,
+    breakeven_r = None, profit_retracement = None, date_col = None, debug_mode = False):
+    ''' add trailing stop
+    '''
+    assert entry_price > init_stop, f'add_stop_trailing: entry_price cannot be below init_stop'
+    assert 'ATR' in df.columns, f'add_stop_trailing: please add ATR to price DF first'
+    l_stops, l_pos, l_max_r = [], [], []
+    pos, stop, max_reward = None, None, 0
+    for i, row in df.iterrows():
+        idate = row[date_col].date() if date_col else i.date()
+        if idate == trade_date:
+            assert entry_price > row['Low'] and entry_price < row['High'], f'add_stop_trailing: entry price {entry_price} is outside of trade_date range ({row["Low"]},{row["High"]})'
+            stop = l_stops[-1] = init_stop
+            risk = entry_price - init_stop
+            pos = True # assume on the first date stop will never be hit
+        elif idate > trade_date and pos:
+            max_reward = max(max_reward, row['Close'] - entry_price) # should we use 'High'?
+            atr_stop = row['Close'] - row['ATR'] * trailing_atr # should we use 'High'?
+            if row['Low']<= stop:   # Trade is Stopped Out
+                stop = pos  = None
+                max_reward = 0
+            else:                   # Manage Stop & let winner run
+                if breakeven_r:
+                    if max_reward/risk > breakeven_r:
+                        stop = max(atr_stop, stop, entry_price)
+                else:
+                    stop = max(stop, atr_stop)
+
+        l_stops.append(stop)
+        l_pos.append(pos)
+        l_max_r.append(max_reward)
+
+    df['stops'] = l_stops
+    df['stops'] = df['stops'].shift() #stops are update end of day, so we shift it for displaying
+    if debug_mode:
+        df['pos'] = l_pos
+        df['max_r'] = l_max_r
+    return df
 
 def backtest(df, signal_col, fair_value_col, ticker = None,
              stop_atr_ratio = 1, rr_ratio = 3, breakeven_stop_r = None,
