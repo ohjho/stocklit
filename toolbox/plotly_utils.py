@@ -147,10 +147,11 @@ def add_MACD_trace(fig, df, ref_row, ref_col = 1, date_col = None, draw_signal_l
             row = ref_row, col = ref_col)
     return fig
 
-def add_Scatter(fig, df, target_col, date_col = None):
+def add_Scatter(fig, df, target_col, date_col = None, line_color = None):
     date_serie = df[date_col] if date_col else df.index
     fig.append_trace(
-        go.Scatter(x = date_serie, y = df[target_col], name = target_col),
+        go.Scatter(x = date_serie, y = df[target_col], name = target_col,
+                    line = {'color': line_color} if line_color else None),
         row = 1, col = 1
     )
     return fig
@@ -266,7 +267,7 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
         if not show_range_slider:
             fig.update_layout(xaxis_rangeslider_visible=False)
 
-    # check for TA to add
+    # indicators to add to the OHLC
     if 'impulse' in df.columns:
         fig = add_impulse_trace(fig, df, ohlc_col_map = ohlc_col_map, date_col = date_col)
 
@@ -282,7 +283,7 @@ def plotly_ohlc_chart(df, vol_col = None, date_col = None, show_volume_profile =
                     row = 1, col = 1
                     )
 
-    # Check for additional TA subplots
+    # Check for indicators for subplots
     ref_row = 2 if vol_col else 1
     for c in auto_subplot_col:
         if c in df.columns:
