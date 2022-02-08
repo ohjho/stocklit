@@ -32,3 +32,10 @@ font = "sans serif"
 # inspirations:
 # https://www.canva.com/learn/website-color-schemes/
 # https://colorpalettes.net/tag/blue-and-yellow/
+
+# Night Mode TWitter + Shades of Yellow
+# [theme]
+# primaryColor="#e9d700"
+# backgroundColor="#243447"
+# secondaryBackgroundColor="#141d26"
+# textColor="#ffffff"
