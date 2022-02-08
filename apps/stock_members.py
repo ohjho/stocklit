@@ -6,9 +6,11 @@ import pandas as pd
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
+from toolbox.st_auth import run_if_auth, auth_before_run
 from toolbox.st_utils import show_plotly
 from toolbox.yf_utils import tickers_parser, get_stocks_obj, get_stocks_info
 from toolbox.data_utils import JsonReader, JsonLookUp
+from toolbox.hkex_utils import get_hangseng_constituent_df
 
 STOCK_UNIVERSE = JsonReader(os.path.join(cwdir,'../data/index_definition.json'))
 
@@ -20,10 +22,10 @@ def get_index_members(index_name, index_dicts = STOCK_UNIVERSE, limit = None):
         https://medium.com/financial-data-analysis/step-1-web-scraping-hong-kong-hsi-stock-price-7d8606c07c57
         https://tcoil.info/build-simple-stock-trading-bot-advisor-in-python/
     '''
-
     if index_name not in [d['index'] for d in index_dicts]:
         return None
     else:
+        #TODO: check idict['url'] if is .xls or .csv do something else
         idict = JsonLookUp(index_dicts, searchKey = 'index', searchVal = index_name)
         tables = pd.read_html(
                     requests.get(idict['url'], headers={'User-agent': 'Mozilla/5.0'}).text,
@@ -36,10 +38,11 @@ def get_index_members(index_name, index_dicts = STOCK_UNIVERSE, limit = None):
         elif index_name in ['^NDX']:
             df['Symbol'] = df['Ticker']
         elif index_name == '^TX60':
-            #TODO: remove columns with NaN
-            #df = df.dropna(by = ['Symbol'])
+            df = df.dropna(subset = ['Symbol'])
             df['Symbol'] = df['Symbol'].apply(lambda x: str(x).replace('.', '-')+'.TO')
-        elif index_name in ['^HSI', '^HCM','^HCL', '^HSTECH', '^H35']:
+        elif index_name == '^HCS':
+            df = get_hangseng_constituent_df()
+        elif index_name in ['^HSI','^HCM','^HCL', '^HSTECH', '^H35']:
             df['Symbol'] = [str(s).zfill(4)+'.HK' for s in df['Code'].tolist()]
         # TODO: apply limit
         return df['Symbol'].tolist()
@@ -62,7 +65,7 @@ def get_etf_holdings(etf_ticker, parse = False):
     return df
 
 def showIndices(l_indices = STOCK_UNIVERSE, st_asset = st, as_df = False):
-    with st_asset.beta_expander('available indices'):
+    with st_asset.expander('available indices'):
         if as_df:
             df = pd.DataFrame(l_indices).set_index('index')
             st.write(df)
@@ -114,8 +117,9 @@ def get_index_tickers(st_asset = st.sidebar):
         else:
             return ''
 
+@auth_before_run
 def Main():
-    with st.sidebar.beta_expander("MBRS"):
+    with st.sidebar.expander("MBRS"):
         st.info(f'''
             Getting Indices members and ETFs holdings (coming soon)
 
@@ -124,11 +128,11 @@ def Main():
 
     showIndices(st_asset = st.sidebar)
     default_tickers = get_index_tickers(
-                        st_asset = st.sidebar.beta_expander('Load an Index', expanded = True)
+                        st_asset = st.sidebar.expander('Load an Index', expanded = True)
                         )
 
-    with st.sidebar.beta_expander('settings', expanded = False):
-        df_height = st.number_input("members' df height", value = 500, min_value = 200)
+    with st.sidebar.expander('settings', expanded = False):
+        df_height = int(st.number_input("members' df height", value = 500, min_value = 200))
 
     tickers = tickers_parser(
                 st.text_input("index members' tickers [space separated]",
@@ -136,8 +140,8 @@ def Main():
                 )
 
     if tickers:
-        with st.beta_expander('display keys'):
-            l_col, r_col = st.beta_columns(2)
+        with st.expander('display keys'):
+            l_col, r_col = st.columns(2)
             with l_col:
                 l_keys_des = st.multiselect('descriptive',
                                 options = ['longName', 'previousClose','sector', 'fullTimeEmployees', 'country', 'industry', 'currency', 'exchangeTimezoneName'],

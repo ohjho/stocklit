@@ -115,3 +115,20 @@ def scrap_hk_stock_div(ticker, parse_func = parse_particular, ex_date_after = '1
 	df.insert(loc = 1, column = 'Ex-date', value = ex_date_col)
 	df.insert(loc = 2, column = 'Div', value = div_col)
 	return df
+
+@timed_lru_cache(seconds = 8*60**2) # Cache data for 8 hours
+def get_hangseng_constituent_df(xls_url = 'https://www.hsi.com.hk/static/uploads/contents/en/dl_centre/other_materials/HSSI_LISTe.xls',
+		convert_stock_code = True, debug_mode = False):
+	'''return a df of hang seng index constituents
+	Args:
+		xls_url: url of the hang seng index constituents xls file; see https://www.hsi.com.hk/eng/indexes/all-indexes/sizeindexes
+		convert_stock_code: convert stock code to yfinance tickers
+	'''
+	print(f'hkex_utils: initializing data from {xls_url}')
+	df = pd.read_excel(xls_url, sheet_name = 'ConstituentList', header = 3, index_col = 0, usecols = "A:D" )
+	df = df.dropna(how = 'any')
+	if debug_mode:
+		print(f'--- dataframe found:\n{df}')
+	if convert_stock_code:
+		df['Symbol'] = df['Code'].apply( lambda x : str(int(x)).zfill(4) + '.HK')
+	return df

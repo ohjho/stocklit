@@ -15,6 +15,10 @@
         "url": "http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HSI",
         "df": 2
     },
+    {"name": "Hang Seng Small-cap Index", "index": "^HCS", "reference_security": "2800.HK",
+        "url": "http://www.aastocks.com/en/stocks/market/index/hk-index-con.aspx?index=HSHKSI&t=2&hk=0",
+        "df": 17
+    },
     {"name": "Hang Seng Mid-cap Index", "index": "^HCM", "reference_security": "2800.HK",
         "url": "http://www.etnet.com.hk/www/eng/stocks/indexes_detail.php?subtype=HCM",
         "df": 2
