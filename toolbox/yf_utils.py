@@ -119,10 +119,13 @@ def df_to_weekly(df_daily, date_col = None,
     take a daily DF and convert it to weekly DF
     see: https://stackoverflow.com/a/34598511/14285096
     '''
+    from pandas.tseries.frequencies import to_offset
     df = df_daily.copy()
     if date_col:
         df.set_index(date_col, inplace = True)
-    df = df.resample('W',
-            loffset = pd.offsets.timedelta(days = -6) # put the labels to Monday
-            ).apply(logic)
+    # df = df.resample('W',
+    #         loffset = pd.offsets.timedelta(days = -6) # put the labels to Monday
+    #         ).apply(logic)
+    df = df.resample('W').apply(logic)
+    df.index -= to_offset('6D')
     return df
