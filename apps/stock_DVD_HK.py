@@ -10,6 +10,7 @@ from stqdm import stqdm
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
+from toolbox.st_auth import run_if_auth, auth_before_run
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline, get_timeframe_params
 from toolbox.yf_utils import tickers_parser, get_dfs_by_tickers
 from toolbox.data_utils import str_to_date
@@ -196,6 +197,7 @@ def show_past_div(df, st_asset, timeframe_params, atr_period):
 
         visualize_dvd_df(df.dropna(subset= ['Div','ATR_ex-1']))
 
+@auth_before_run
 def Main():
     with st.sidebar.expander("DVD_HK"):
         st.info(f'''
