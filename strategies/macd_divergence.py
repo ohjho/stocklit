@@ -17,7 +17,7 @@ def cluster_near_by_sign(data, n= 1):
     all_clusters = [list(v) for k, v in groupby(data, lambda x: x<0)]
     return all_clusters[-n:] if n else all_clusters
 
-def detect_macd_divergence(df, period = 66, threshold = 1, debug = False):
+def detect_macd_divergence(df, period:int = 66, threshold:float = 1, debug = False):
     ''' Detect MACD Divergence
     Args:
         period = number of bars (should be around 3M)
