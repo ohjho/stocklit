@@ -249,6 +249,43 @@ def market_classification(df, period:int, debug = False,
     mkt_cls = 1 if hh and hl else mkt_cls
     return class_names_map[mkt_cls] if class_names_map else mkt_cls
 
+def add_market_classification(df, period:int, col_name = 'market_classification',
+    class_map = {0: 'rangebound', 1: 'trending-up', -1: 'trending-down'},
+    debug_mode = False):
+    ''' detect trending (up: higher highs + higher lows, down: lower highs + lower lows)
+    or rangebound markets
+    Args:
+        period: number of bars to lookback (sliding window) for highs and lows
+    '''
+    # def internal util functions
+    round_list = lambda ll:  [round(i, 2) for i in ll]
+    is_ascending = lambda ll:  sorted(ll) == ll
+    is_descending = lambda ll:  sorted(ll, reverse = True) == ll
+
+    period_high = df['High'].rolling(period).max().shift()
+    period_low = df['Low'].rolling(period).min().shift()
+
+    is_hh = period_high.rolling(period).apply(lambda ll: is_ascending(round_list(ll))).fillna(0).astype(bool)
+    is_hl = period_low.rolling(period).apply(lambda ll: is_ascending(round_list(ll))).fillna(0).astype(bool)
+    is_lh = period_high.rolling(period).apply(lambda ll: is_descending(round_list(ll))).fillna(0).astype(bool)
+    is_ll = period_low.rolling(period).apply(lambda ll: is_descending(round_list(ll))).fillna(0).astype(bool)
+
+    trend_up = (is_hh & is_hl)
+    trend_down = (is_lh & is_ll)
+    df[col_name] = [ 1 if up else -1 if down else 0
+        for up, down in zip(trend_up.tolist(), trend_down.tolist())
+    ]
+    if class_map:
+        df[col_name] = df[col_name].apply(lambda x: class_map[x])
+    if debug_mode:
+        df['period_high'] = period_high
+        df['period_low'] = period_low
+        df['higher_highs'] = is_hh
+        df['higher_lows'] = is_hl
+        df['lower_highs'] = is_lh
+        df['lower_lows'] = is_ll
+    return df
+
 def efficiency_ratio(df, period: int):
     '''efficiency is defined as (close_t - close_0)/ sum(daily_hilo)
     '''
