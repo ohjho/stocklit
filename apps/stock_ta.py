@@ -8,6 +8,7 @@ from businessdate import BusinessDate
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
+from toolbox.st_auth import run_if_auth
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 from toolbox.yf_utils import tickers_parser, get_stocks_data, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
@@ -15,6 +16,7 @@ from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
                             add_ADX, add_Impulse, add_ATR, add_avg_penetration, \
                             market_classification, efficiency_ratio
+from strategies.utils import add_stops_trailing
 from strategies.macd_divergence import detect_macd_divergence
 from strategies.kangaroo_tails import detect_kangaroo_tails
 from strategies.vol_breakout import detect_vol_breakout, detect_volatility_contraction, \
@@ -53,6 +55,56 @@ def add_event_col(df_price, df_events, event_col_name, ignore_time = True):
         event_dates = df_events.index.normalize().tolist()
         df_price[event_col_name] = [d in event_dates for d in df_price.index.tolist()]
     return df_price
+
+@run_if_auth
+def show_beta_features(data, l_events_to_color, atr_period, l_col_to_scatter, st_asset = None):
+    st_asset = st_asset if st_asset else st.expander('beta features')
+    with st_asset:
+        l_col, m_col, r_col = st.columns(3)
+        with m_col:
+            st.write('#### Low Volatility Pullbacks')
+            lvpb_period = st.number_input('Low Volatility Pullbacks Period', value = 22)
+            data = detect_low_vol_pullback(data, period = lvpb_period, col_name = 'LVPB',
+                    price_col = 'Close') if st.checkbox('show Low Volatility Pullbacks') else data
+            l_events_to_color.append({'column': 'LVPB', 'color': 'LightPink'})
+
+            st.write(f'#### Vol Breakout')
+            vol_buysell = st.checkbox('Show Buy Signals', value = True)
+            vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
+            ignore_gap = st.checkbox('ignore gap', value = True)
+            data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
+                    threshold = vol_threshold, ignore_volume = False,
+                    do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
+            l_events_to_color.append({'column': 'vol_breakout', 'color': 'Aquamarine' if vol_buysell else 'HotPink'})
+
+        with l_col:
+            st.write('#### Volatility Consolidation')
+            VCP_MAs = st.text_input("Cascading ATR Periods (commas-separated)",
+                    value = '22,11') if st.checkbox('Detect Volatilitly Contraction') else None
+            VCP_MAs = [int(p) for p in VCP_MAs.split(',')] if VCP_MAs else None
+            data = detect_volatility_contraction(data, atr_periods = VCP_MAs,
+                    period = st.number_input('Look-back period', value = 100, min_value = 1),
+                    threshold = st.number_input('ATR threshold (looking for ATR below this percentile in the look-back period)',  value = 0.05),
+                    col_name = 'VCP', debug = True) if VCP_MAs else data
+            l_events_to_color.append({'column': 'VCP', 'color': 'LightSkyBlue'})
+            # data = detect_VCP(data, ma_cascade = VCP_MAs,
+            #         lvpb_period = lvpb_period, ATR_period = atr_period,
+            #         col_name = 'VCP_setup', debug_mode = True) if VCP_MAs else data
+            # beta_events_to_plot.append('VCP_setup')
+        with r_col:
+            st.write(f'#### Visualize Stops')
+            trade_date = st.date_input('trade date')
+            td_close = data[data.index.date == trade_date]['Close'][0] if trade_date != datetime.date.today() else 0
+            entry_price = st.number_input('entry price', value = td_close)
+            init_stop = st.number_input('initial stop')
+            if all([trade_date, entry_price, init_stop]):
+                data = add_stops_trailing(data, trade_date = trade_date,
+                            entry_price = entry_price, init_stop = init_stop,
+                            trailing_atr = st.number_input('trailing stop ATR multiplier', value = 2),
+                            breakeven_r = st.number_input('breakeven R', value = 0),
+                            debug_mode = True
+                            )
+                l_col_to_scatter.append({'column': 'stops', 'color': 'BlueViolet'})
 
 def Main():
     with st.sidebar.expander("TA"):
@@ -97,9 +149,9 @@ def Main():
 
         side_config = st.sidebar.expander('charts configure', expanded = False)
         with side_config:
-            show_ohlc = st.checkbox('ohlc chart', value = True)
-            # b_two_col = st.checkbox('two-column view', value = True)
-            chart_size = st.number_input('Chart Size', value = 800, min_value = 400, max_value = 1500, step = 50)
+            # show_ohlc = st.checkbox('ohlc chart', value = True)
+            show_df = st.checkbox('show price dataframe', value = False)
+            chart_size = st.number_input('Chart Size', value = 1200, min_value = 400, max_value = 1500, step = 50)
 
         side_stock_info = get_stock_info_container(stock_obj.info, st_asset= st.sidebar)
 
@@ -108,7 +160,7 @@ def Main():
         df_return = data_dict['returns'].copy()
 
         with st.expander('Indicators'):
-            l_col, m_col , r_col = st.beta_columns(3)
+            l_col, m_col , r_col = st.columns(3)
             with l_col:
                 st.write('#### the moving averages')
                 ma_type = st.selectbox('moving average type', options = ['', 'ema', 'sma', 'vwap'])
@@ -145,7 +197,7 @@ def Main():
                     """)
 
                 st.write('#### True Range Related')
-                atr_period = st.number_input('Average True Range Period', value = 13)
+                atr_period = int(st.number_input('Average True Range Period', value = 13))
                 atr_ema = st.checkbox('use EMA for ATR', value = True)
                 show_ATR = st.checkbox('show ATR?', value = False)
                 if ma_type:
@@ -170,7 +222,7 @@ def Main():
                         if do_ADX else data
 
         with st.expander('advanced settings'):
-            l_col, m_col , r_col = st.beta_columns(3)
+            l_col, m_col , r_col = st.columns(3)
             with l_col:
                 st.write('#### Market Type Classification')
                 mkt_class_period = int(st.number_input('peroid (match your trading time domain)', value = 66))
@@ -231,46 +283,16 @@ def Main():
                         period = st.number_input('period', value = 22), tail_type = tail_type) \
                         if tail_type else data
 
-        beta_events_to_plot = []
-        l_events_to_color = []
-        with st.expander('beta features'):
-            l_col, m_col, r_col = st.beta_columns(3)
-            with l_col:
-                st.write(f'#### Vol Breakout')
-                vol_buysell = st.checkbox('Show Buy Signals', value = True)
-                vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
-                ignore_gap = st.checkbox('ignore gap', value = True)
-                data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
-                        threshold = vol_threshold, ignore_volume = False,
-                        do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
-                # beta_events_to_plot.append('vol_breakout')
-                l_events_to_color.append({'column': 'vol_breakout', 'color': 'Aquamarine' if vol_buysell else 'HotPink'})
+        beta_events_to_plot, l_events_to_color, l_col_to_scatter = [], [], []
+        show_beta_features(data = data, l_events_to_color=l_events_to_color,
+            l_col_to_scatter = l_col_to_scatter, atr_period = atr_period)
 
-            with m_col:
-                st.write('#### Low Volatility Pullbacks')
-                lvpb_period = st.number_input('Low Volatility Pullbacks Period', value = 22)
-                data = detect_low_vol_pullback(data, period = lvpb_period, col_name = 'LVPB',
-                        price_col = 'Close') if st.checkbox('show Low Volatility Pullbacks') else data
-                # beta_events_to_plot.append('LVPB')
-                l_events_to_color.append({'column': 'LVPB', 'color': 'LightPink'})
-            with r_col:
-                st.write('#### Volatility Consolidation')
-                VCP_MAs = st.text_input("VCP detection's moving averages (commas-separated)",
-                        value = '100,50,25') if st.checkbox('Detect Volatilitly Contraction') else None
-                VCP_MAs = [int(p) for p in VCP_MAs.split(',')] if VCP_MAs else None
-                data = detect_volatility_contraction(data, ma_cascade = VCP_MAs,
-                        col_name = 'VCP', debug = True) if VCP_MAs else data
-                l_events_to_color.append({'column': 'VCP', 'color': 'LightSkyBlue'})
-                # data = detect_VCP(data, ma_cascade = VCP_MAs,
-                #         lvpb_period = lvpb_period, ATR_period = atr_period,
-                #         col_name = 'VCP_setup', debug_mode = True) if VCP_MAs else data
-                # beta_events_to_plot.append('VCP_setup')
-
-        with st.expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
-            # st.subheader('Price Data')
-            st.write(data)
-            # st.subheader('Returns')
-            # st.write(df_return)
+        if show_df:
+            with st.expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
+                # st.subheader('Price Data')
+                st.write(data)
+                # st.subheader('Returns')
+                # st.write(df_return)
 
         if isinstance(avg_pen_data, pd.DataFrame):
             with st.expander('Buy Entry (SafeZone)'):
@@ -324,8 +346,12 @@ def Main():
             fig = add_color_event_ohlc(fig, data[data.index > pd.Timestamp(start_date)],
                         condition_col = d['column'], color = d['color']
                         ) if d['column'] in data.columns else fig
+        # Scatter Columns
+        for c in l_col_to_scatter:
+            fig = add_Scatter(fig, data[data.index > pd.Timestamp(start_date)],
+                    target_col = c['column'], line_color = c['color'])
 
-        show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]}")
+        show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]} : {stock_obj.info['longName']}")
 
 if __name__ == '__main__':
     Main()
