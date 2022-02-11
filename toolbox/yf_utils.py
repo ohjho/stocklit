@@ -2,6 +2,7 @@ import os, sys
 import yfinance as yf
 import pandas as pd
 from tqdm import tqdm
+from businessdate import BusinessDate
 
 # TODO: for caching yfinance results
 # this is an open issue for the Ticker method: https://github.com/ranaroussi/yfinance/issues/677
@@ -19,8 +20,7 @@ def valid_stock(stock_obj):
     Check if a stock_obj created by yf.Ticker has data
     '''
     try:
-        stock_obj.info
-        return True
+        return 'symbol' in stock_obj.info.keys()
     except:
         return False
 
@@ -73,6 +73,25 @@ def get_stocks_data(tickers, session = SESH,
         'prices': prices_df,
         'returns': returns_df
     }
+
+def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
+    start_date = None, end_date = None):
+    ''' Get Max OHLC (includes most current bar) for the given stocks
+    '''
+    assert interval in ['1d', '1wk'], f'get_stocks_ohlc: interval must be either 1d or 1wk'
+    prices_df = yf.download(tickers = tickers, session = SESH,
+                    period = 'max', interval = '1d', group_by = 'ticker'
+                    )
+    # Date Adjustment
+    start_date = (BusinessDate(start_date) - '1d').to_date() if start_date else None
+    end_date = (BusinessDate(end_date) + '1d').to_date() if end_date else None
+    prices_df = prices_df[prices_df.index > pd.Timestamp(start_date)] \
+                if start_date else prices_df
+    prices_df = prices_df[prices_df.index < pd.Timestamp(end_date)] \
+                if end_date else prices_df
+    # Interval Adjustment
+    prices_df = df_to_weekly(prices_df) if interval == '1wk' else prices_df
+    return prices_df
 
 def get_dfs_by_tickers(df):
     '''

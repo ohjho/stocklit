@@ -10,7 +10,7 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_auth import run_if_auth
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.yf_utils import tickers_parser, get_stocks_data, valid_stock
+from toolbox.yf_utils import tickers_parser, get_stocks_ohlc, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
                             add_Scatter, add_Scatter_Event, add_color_event_ohlc
 from toolbox.ta_utils import add_moving_average, add_MACD, add_AD, add_OBV, add_RSI, \
@@ -21,7 +21,6 @@ from strategies.macd_divergence import detect_macd_divergence
 from strategies.kangaroo_tails import detect_kangaroo_tails
 from strategies.vol_breakout import detect_vol_breakout, detect_volatility_contraction, \
                                 detect_low_vol_pullback, detect_VCP
-from apps.stock_returns import get_yf_data
 
 def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
     container_obj = st_asset.expander(f'''
@@ -71,7 +70,7 @@ def show_beta_features(data, l_events_to_color, atr_period, l_col_to_scatter, st
             st.write(f'#### Vol Breakout')
             vol_buysell = st.checkbox('Show Buy Signals', value = True)
             vol_threshold = st.number_input('Vol Breakout Threshold (% of ATR)', value = 1.0)
-            ignore_gap = st.checkbox('ignore gap', value = True)
+            ignore_gap = st.checkbox('ignore gap', value = False)
             data = detect_vol_breakout(data, period = atr_period, ignore_gap = ignore_gap,
                     threshold = vol_threshold, ignore_volume = False,
                     do_buy = vol_buysell) if st.checkbox(f'Show {atr_period} bars Vol Breakout') else data
@@ -144,20 +143,21 @@ def Main():
     if tickers:
         stock_obj = yf.Ticker(tickers)
         if not valid_stock(stock_obj):
-            st.warning(f'your ticker {tickers} is invalid ')
+            st.error(f'''
+            {tickers} is an invalid ticker.\n
+            Having trouble finding the right ticker?\n
+            Check it out first in `DESC` :point_left:
+            ''')
             return None
 
         side_config = st.sidebar.expander('charts configure', expanded = False)
         with side_config:
-            # show_ohlc = st.checkbox('ohlc chart', value = True)
             show_df = st.checkbox('show price dataframe', value = False)
             chart_size = st.number_input('Chart Size', value = 1200, min_value = 400, max_value = 1500, step = 50)
 
         side_stock_info = get_stock_info_container(stock_obj.info, st_asset= st.sidebar)
 
-        data_dict = get_yf_data(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
-        data = data_dict['prices'].copy()
-        df_return = data_dict['returns'].copy()
+        data = get_stocks_ohlc(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
 
         with st.expander('Indicators'):
             l_col, m_col , r_col = st.columns(3)
@@ -174,7 +174,7 @@ def Main():
                 data = add_OBV(data)  if st.checkbox('Show On Balance Volume') else data
             with m_col:
                 st.write('#### MACD')
-                do_MACD = st.checkbox('Show MACD?', value = False)
+                do_MACD = st.checkbox('Show MACD?', value = True)
                 fast = st.number_input('fast', value = 12)
                 slow = st.number_input('slow', value = 26)
                 signal = st.number_input('signal', value = 9)
@@ -289,10 +289,7 @@ def Main():
 
         if show_df:
             with st.expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
-                # st.subheader('Price Data')
                 st.write(data)
-                # st.subheader('Returns')
-                # st.write(df_return)
 
         if isinstance(avg_pen_data, pd.DataFrame):
             with st.expander('Buy Entry (SafeZone)'):
@@ -311,11 +308,6 @@ def Main():
                 plot_target_buy = False # st.checkbox('plot target buy T+1')
                 # if plot_avg_pen:
                 #     st.write(avg_pen_data)
-
-        l_tickers = df_return.columns.tolist()
-        if len(l_tickers) != len(tickers.split(' ')):
-            st.warning(f'having trouble finding the right ticker?\nCheck it out first in `DESC` :point_left:')
-        single_ticker = len(l_tickers) == 1
 
         if not(show_ATR) and 'ATR' in data.columns:
             del data['ATR']
@@ -351,7 +343,8 @@ def Main():
             fig = add_Scatter(fig, data[data.index > pd.Timestamp(start_date)],
                     target_col = c['column'], line_color = c['color'])
 
-        show_plotly(fig, height = chart_size, title = f"Price chart({interval}) for {l_tickers[0]} : {stock_obj.info['longName']}")
+        show_plotly(fig, height = chart_size,
+            title = f"Price chart({interval}) for {tickers} : {stock_obj.info['longName']}")
 
 if __name__ == '__main__':
     Main()
