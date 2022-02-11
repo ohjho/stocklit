@@ -3,18 +3,18 @@
 
 # Primary accent for interactive elements
 # primaryColor = "#d33682" # Magneta
-primaryColor = "#b58900" # yellow
+# primaryColor = "#b58900" # yellow
 
 # Background color for the main content area
 # backgroundColor = "#002b36"
-backgroundColor = "#586e75"
+# backgroundColor = "#586e75"
 
 # Background color for sidebar and most interactive widgets
 # secondaryBackgroundColor = "#586e75"
-secondaryBackgroundColor = "#002b36"
+# secondaryBackgroundColor = "#002b36"
 
 # Color used for almost all text
-textColor = "#fafafa"
+# textColor = "#fafafa"
 
 # Font family for all text in the app, except code blocks
 # Accepted values (serif | sans serif | monospace)
@@ -35,7 +35,7 @@ font = "sans serif"
 
 # Night Mode TWitter + Shades of Yellow
 # [theme]
-# primaryColor="#e9d700"
-# backgroundColor="#243447"
-# secondaryBackgroundColor="#141d26"
-# textColor="#ffffff"
+primaryColor="#e9d700"
+backgroundColor="#243447"
+secondaryBackgroundColor="#141d26"
+textColor="#ffffff"

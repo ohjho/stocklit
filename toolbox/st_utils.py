@@ -16,9 +16,10 @@ def st_write_dict(data):
         st.subheader(k)
         st.write(v)
 
-def show_logo(st_asset = st.sidebar, use_column_width = False, width = 100):
-    logo_url = "https://raw.githubusercontent.com/ohjho/open_terminal/master/asset/ot_logo.png"
-    st_asset.image(logo_url, width = width, use_column_width = use_column_width)
+def show_logo(st_asset = st.sidebar, use_column_width = False, width = 100, str_color = "gold"):
+    logo_url = f'asset/app_logo_{str_color}.png'
+    _, ccol, _ = st_asset.columns(3)
+    ccol.image(logo_url, width = width, use_column_width = use_column_width)
 
 def show_plotly(fig, height = None, title = None, template = 'plotly_dark', st_asset = st):
     params = {'height': height, 'title': title, 'template': template}

@@ -43,10 +43,9 @@ def interactive_login(st_asset, b_show_logo = False,
 	Args:
 		st_asset: a streamlit container (can't have columns)
 	'''
+	if b_show_logo:
+		show_logo(st_asset = st_asset, width = 300)
 	with st_asset:
-		if b_show_logo:
-			_, c, _ = st.columns((1,2,1))
-			show_logo(st_asset = c, width = 300)
 		st.info(str_msg)
 		name, auth_status = authenticator.login('Login', 'main')
 
