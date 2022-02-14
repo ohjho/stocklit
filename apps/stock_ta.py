@@ -127,8 +127,8 @@ def Main():
             st.info(f'period start date: {start_date}')
 
         # TODO: allow manual handling of data_start_date
-        l_interval = ['1d','1wk','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1mo','3mo']
-        interval = st.selectbox('interval', options = l_interval)
+        # l_interval = ['1d','1wk','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1mo','3mo']
+        interval = st.selectbox('interval', options = ['1d', '1wk'])
         is_intraday = interval.endswith(('m','h'))
         data_start_date = start_date if is_intraday else \
                         (BusinessDate(start_date) - "1y").to_date()
