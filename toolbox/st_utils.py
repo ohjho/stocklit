@@ -54,7 +54,11 @@ def plotly_hist_draw_hline(fig, l_value_format):
         shapes = l_shapes
         )
 
-def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '250b' ):
+def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '250b',
+        l_interval_options = ['1d','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1wk','1mo','3mo']
+    ):
+    ''' get user inputs and return timeframe params in dictionary {'start_date':..., 'end_date':..., 'data_start_date':...,'interval':...,'tenor':...}
+    '''
     with st_asset:
         today = datetime.date.today()
         end_date = st.date_input('Period End Date', value = today)
@@ -66,8 +70,7 @@ def get_timeframe_params(st_asset , data_buffer_tenor = '1y', default_tenor = '2
             start_date = (BusinessDate(end_date) - tenor).to_date()
             st.info(f'period start date: {start_date}')
         data_start_date = (BusinessDate(start_date) - data_buffer_tenor).to_date()
-        l_interval = ['1d','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1wk','1mo','3mo']
-        interval = st.selectbox('interval', options = l_interval)
+        interval = st.selectbox('interval', options = l_interval_options)
 
     return {
         'start_date': start_date, 'end_date': end_date,
