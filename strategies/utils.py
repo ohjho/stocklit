@@ -8,7 +8,7 @@ from businessdate import BusinessDate
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.data_utils import timed_lru_cache
-from toolbox.yf_utils import get_stocks_data, tickers_parser
+from toolbox.yf_utils import tickers_parser, get_stocks_ohlc
 from toolbox.ta_utils import market_classification, add_moving_average, add_ATR, \
                             add_MACD
 from strategies.macd_divergence import cluster_near_by_sign
@@ -29,11 +29,11 @@ def get_ticker_data_with_technicals(
     '''
     start_date = (BusinessDate(trade_date)- tenor).to_date()
     data_start_date = (BusinessDate(start_date) - data_buffer_tenor).to_date()
-    data_dict = get_stocks_data(tickers = tickers_parser(ticker),
-                    yf_download_params = {
-                    'start': data_start_date, 'end': trade_date, 'interval': interval, 'group_by': 'column'
-                    })
-    df = data_dict['prices']
+    df = get_stocks_ohlc(tickers = tickers_parser(ticker),
+            interval = interval,
+            start_date = data_start_date,
+            end_date = trade_date
+            )
 
     for p in l_ma_periods:
         df = add_moving_average(df, period = p, type = 'ema')
