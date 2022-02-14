@@ -1,6 +1,5 @@
-![stocklit Logo](asset/app_logo_gold.png)
 ## stocklit
-stock x [streamlit](https://streamlit.io/), is inspired by the [Bloomberg Terminal](https://bba.bloomberg.net/) but aspire to be open and free, and stepping in the direction of [information symmetry](https://en.wikipedia.org/wiki/Information_asymmetry). If you are a stock investor or swing trader, this might be a useful tool for you and I look forward to your [comments/ feedbacks](https://github.com/ohjho/stocklit/issues)
+(stock x [streamlit](https://streamlit.io/)) is inspired by the [Bloomberg Terminal](https://en.wikipedia.org/wiki/Bloomberg_Terminal) but aspire to be **open and free** with the goal of positively contributing to a bit more [information symmetry](https://en.wikipedia.org/wiki/Information_asymmetry) in the market. If you are a stock investor or swing trader, this might be a useful tool for you and any [comments/ issues/ feedbacks](https://github.com/ohjho/stocklit/issues) are welcomed!
 
 Under the hood, the stock data is powered by [yfinance](https://github.com/ranaroussi/yfinance). If you want something more real time (e.g. for day-trading purposes), you might want to checkout [TradingView](https://www.tradingview.com/)
 
