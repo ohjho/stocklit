@@ -14,9 +14,7 @@ def Main():
     ticker = tickers_parser(st.text_input('enter a stock ticker'), max_items = 1)
     with st.sidebar.expander("DESC"):
         st.info(f'''
-            Historical Stock Price by [yfinance](https://github.com/ranaroussi/yfinance)
-            * [yahoo finance ticker lookup](https://finance.yahoo.com/lookup)
-            * [blog post](https://aroussi.com/post/python-yahoo-finance)
+            Description: get general information about the company, upcoming events, etc.
         ''')
 
     if ticker:

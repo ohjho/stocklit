@@ -121,9 +121,9 @@ def get_index_tickers(st_asset = st.sidebar):
 def Main():
     with st.sidebar.expander("MBRS"):
         st.info(f'''
-            Getting Indices members and ETFs holdings (coming soon)
+            Members: getting Indices members
 
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
+            * ETFs holdings using [etf4u](https://github.com/leoncvlt/etf4u) coming soon...
         ''')
 
     showIndices(st_asset = st.sidebar)

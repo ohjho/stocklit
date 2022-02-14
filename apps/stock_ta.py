@@ -106,12 +106,10 @@ def show_beta_features(data, l_events_to_color, atr_period, l_col_to_scatter, st
                 l_col_to_scatter.append({'column': 'stops', 'color': 'BlueViolet'})
 
 def Main():
-    with st.sidebar.expander("TA"):
+    with st.sidebar.expander("GP"):
         st.info(f'''
-            Stock Techincal Analysis:
+            Graph Prices (open-high-low-close)
 
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
-            * business dates calculation by [businessdate](https://businessdate.readthedocs.io/en/latest/intro.html)
             * inspired by this [blog post](https://towardsdatascience.com/creating-a-finance-web-app-in-3-minutes-8273d56a39f8)
                 and this [youtube video](https://youtu.be/OhvQN_yIgCo)
             * plots by Plotly with thanks to this [kaggle notebook](https://www.kaggle.com/mtszkw/technical-indicators-for-trading-stocks)

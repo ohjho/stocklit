@@ -8,7 +8,7 @@ from apps.stock_desc import Main as Desc
 from apps.stock_returns import Main as RT
 from apps.stock_beta import Main as BETA
 from apps.stock_members import Main as MBRS
-from apps.stock_ta import Main as TA
+from apps.stock_ta import Main as GP
 from apps.stock_ATR import Main as ATR
 from apps.stock_DVD_HK import Main as HK_DVD
 
@@ -19,25 +19,23 @@ def Main():
 	# st.set_option('deprecation.showPyplotGlobalUse', False)
 	# st.set_page_config(layout = 'wide')
 	show_logo()
-	# st.sidebar.header('OpenTerminal')
-	# st.sidebar.subheader('information symmetry for all')
-	with st.sidebar.expander("OpenTerminal"):
+	with st.sidebar.expander("stocklit"):
 		st.info(f'''
 		[information symmetry](https://en.wikipedia.org/wiki/Information_asymmetry) for all
 
-		*	[project page](https://github.com/ohjho/open_terminal)
-		*	[issues tracking](https://github.com/ohjho/open_terminal/issues)
+		*	[project page](https://github.com/ohjho/stocklit)
+		*	[issues tracking](https://github.com/ohjho/stocklit/issues)
 		''')
 
 	app_dict = {
-		"beta login": login,
-		"stock DESC": Desc,
-		"stock RT": RT,
-		"stock BETA": BETA,
-		"stock MBRS": MBRS,
-		"stock TA": TA,
-		"stock ATR": ATR,
-		"stock HK-DVD": HK_DVD
+		"DESC": Desc,
+		"GP": GP,
+		"RT": RT,
+		"ATR": ATR,
+		"BETA": BETA,
+		"MBRS": MBRS,
+		"HK-DVD": HK_DVD,
+		"login": login,
 	}
 
 	app_sw = st.sidebar.selectbox('select app', options = [''] + list(app_dict.keys()))

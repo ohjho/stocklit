@@ -49,10 +49,7 @@ def get_betas(df_returns, benchmark_col):
 def Main():
     with st.sidebar.expander("BETA"):
         st.info(f'''
-            Beta Analysis vs Benchmark Security:
-
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
-            * sharpe ratio per [this kaggle notebook](https://www.kaggle.com/dimkapoulas/the-sharpe-ratio)
+            Beta Analysis vs Benchmark Security
         ''')
 
     default_tickers = get_index_tickers(

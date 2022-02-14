@@ -126,10 +126,8 @@ def plot_returns(df_returns, df_prices, target_ticker,
 def Main():
     with st.sidebar.expander("RT"):
         st.info(f'''
-            Stock Return Analysis:
+            Returns Analysis: what does your stock's return distribution look like? How fat are the tails?
 
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
-            * business dates calculation by [businessdate](https://businessdate.readthedocs.io/en/latest/intro.html)
             * inspired by this [blog post](https://www.codingfinance.com/post/2018-04-03-calc-returns-py/)
         ''')
 

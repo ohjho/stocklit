@@ -54,12 +54,14 @@ def visualize_features(df_dict, chart_configs, atr_period, start_date, use_ema =
 
     if is_single: # Special Handling for Single Ticker
         tickers = None
+        df_dict[l_tickers[0]]['ATR'] = df_dict[l_tickers[0]]['ATR']/ df_dict[l_tickers[0]]['Close'] \
+                        if norm_atr else df_dict[l_tickers[0]]['ATR']
         atr_periods = st.text_input('more ATR periods to test (comma separated)')
         atr_periods = [int(i) for i in atr_periods.split(',')] if atr_periods else None
         if atr_periods:
             for p in atr_periods:
                 df = df_dict[l_tickers[0]]
-                df_dict[l_tickers[0]] = add_ATR(df, period = p,
+                df_dict[l_tickers[0]] = add_ATR(df, period = p, normalize = norm_atr,
                     use_ema = use_ema, channel_dict = None, col_name = f'ATR_{p}')
         # MA of ATR
         # str_ma_period = st.text_input('moving averages period (comma-separated for multiple periods)')
@@ -148,12 +150,8 @@ def visualize_features(df_dict, chart_configs, atr_period, start_date, use_ema =
 def Main():
     with st.sidebar.expander("ATR"):
         st.info(f'''
-            #### Average True Range
-            Compare risk across multiple stocks and determine your position sizing
-
-            * data by [yfinance](https://github.com/ranaroussi/yfinance)
-            * [definition](https://www.thebalance.com/how-average-true-range-atr-can-improve-trading-4154923)
-            * [using ATR in position sizing](https://therobusttrader.com/how-to-use-atr-in-position-sizing/)
+            [Average True Range](https://www.thebalance.com/how-average-true-range-atr-can-improve-trading-4154923):
+            Compare risk across multiple stocks and determine your [position sizing](https://therobusttrader.com/how-to-use-atr-in-position-sizing/)
         ''')
 
     tickers = tickers_parser(st.text_input('enter stock ticker(s) [space separated]'), max_items = None)

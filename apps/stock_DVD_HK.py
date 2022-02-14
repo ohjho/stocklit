@@ -201,7 +201,7 @@ def show_past_div(df, st_asset, timeframe_params, atr_period):
 def Main():
     with st.sidebar.expander("DVD_HK"):
         st.info(f'''
-            Hong Kong Listed Stocks Upcoming Dividends
+            Dividends: Hong Kong Listed Stocks only (for now...)
             ''')
 
     default_tickers = get_index_tickers(
