@@ -78,7 +78,8 @@ def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
     start_date = None, end_date = None):
     ''' Get Max OHLC (includes most current bar) for the given stocks
     '''
-    assert interval in ['1d', '1wk'], f'get_stocks_ohlc: interval must be either 1d or 1wk'
+    interval_rule_dict = {'1wk': 'W', '1mo':'M'}
+    assert interval in ['1d'] + list(interval_rule_dict.keys()), f'get_stocks_ohlc: interval must be either 1d or one of {interval_rule_dict.keys()}'
     prices_df = yf.download(tickers = tickers, session = SESH,
                     period = 'max', interval = '1d', group_by = 'ticker'
                     )
@@ -90,7 +91,11 @@ def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
     prices_df = prices_df[prices_df.index < pd.Timestamp(end_date)] \
                 if end_date else prices_df
     # Interval Adjustment
-    prices_df = df_to_weekly(prices_df) if interval == '1wk' else prices_df
+    if interval in interval_rule_dict.keys():
+        try:
+            prices_df = df_aggregate(prices_df, rule =interval_rule_dict[interval])
+        except:
+            raise RuntimeError(f'get_stocks_ohlc: daily to weekly conversion error for {tickers}')
     return prices_df
 
 def get_dfs_by_tickers(df):
@@ -127,6 +132,31 @@ def get_stocks_info(tickers, tqdm_func = tqdm):
     ]
     return results
 
+def df_aggregate(df_daily, rule = 'W', date_col = None,
+        logic = {'Open'  : 'first',
+         'High'  : 'max',
+         'Low'   : 'min',
+         'Close' : 'last', 'Adj Close': 'last',
+         'Volume': 'sum'}
+    ):
+    '''
+    take a daily DF and aggregating it for longer time frame
+    see: https://stackoverflow.com/a/34598511/14285096
+    or https://towardsdatascience.com/using-the-pandas-resample-function-a231144194c4
+    '''
+    assert rule in ['M','W'], f'df_aggregate: only weekly, W, and monthly, M offset available for now'
+    if len(df_daily) >0:
+        from pandas.tseries.frequencies import to_offset
+        df = df_daily.copy()
+        if date_col:
+            df.set_index(date_col, inplace = True)
+        df = df.resample(rule).apply(logic)
+        df.index -= to_offset('6D') if rule == 'W' else \
+                    pd.offsets.MonthBegin(1)
+        return df
+    else:
+        return df_daily
+
 def df_to_weekly(df_daily, date_col = None,
         logic = {'Open'  : 'first',
          'High'  : 'max',
@@ -138,13 +168,16 @@ def df_to_weekly(df_daily, date_col = None,
     take a daily DF and convert it to weekly DF
     see: https://stackoverflow.com/a/34598511/14285096
     '''
-    from pandas.tseries.frequencies import to_offset
-    df = df_daily.copy()
-    if date_col:
-        df.set_index(date_col, inplace = True)
-    # df = df.resample('W',
-    #         loffset = pd.offsets.timedelta(days = -6) # put the labels to Monday
-    #         ).apply(logic)
-    df = df.resample('W').apply(logic)
-    df.index -= to_offset('6D')
-    return df
+    if len(df_daily) >0:
+        from pandas.tseries.frequencies import to_offset
+        df = df_daily.copy()
+        if date_col:
+            df.set_index(date_col, inplace = True)
+        # df = df.resample('W',
+        #         loffset = pd.offsets.timedelta(days = -6) # put the labels to Monday
+        #         ).apply(logic)
+        df = df.resample('W').apply(logic)
+        df.index -= to_offset('6D')
+        return df
+    else:
+        return df_daily
