@@ -45,7 +45,7 @@ def detect_vol_breakout(df, period:int = 22, threshold:float = 1, ignore_gap = T
                 (df['Close'] - df['Close'].shift())
 
     # this doesn't seem to work, check 336.hk on 11/9
-    volume_confirms = df['Volume'] > df['Volume'].shift().rolling(period).mean()
+    volume_confirms = df['Volume'] > df['Volume'].shift().rolling(int(period)).mean()
     vol_breakout = close_diff > (df[ATR_col].shift() * threshold) if do_buy else \
                     close_diff < (df[ATR_col].shift() * threshold)
     if not ignore_volume:
@@ -80,7 +80,7 @@ def detect_volatility_contraction(df, atr_periods = [11,5],
     for p in atr_periods:
         df = add_ATR(df, period = p, col_name = f'ATR_{p}',
                 use_ema = use_ema, channel_dict = None, normalize = normalize)
-    df['ATR_percentile'] = df['ATR'].rolling(period).apply(
+    df['ATR_percentile'] = df['ATR'].rolling(int(period)).apply(
                             lambda A: get_percentile(x = A[-1], A = A)
                             )
     df[col_name] = df['ATR_percentile'] < threshold
@@ -118,7 +118,7 @@ def detect_volatility_contraction(df, atr_periods = [11,5],
 #     return df
 
 ### This is for the VCP dtection
-### 
+###
 def detect_VCP(df, ma_cascade = [100,50,25], lvpb_period = 22, ATR_period = 5,
         debug_mode = False, normalize_ATR = False, col_name = 'VCP_setup'):
     '''Minervini's Volatility Contraction Pattern detection
