@@ -48,21 +48,16 @@ def get_index_members(index_name, index_dicts = STOCK_UNIVERSE, limit = None):
         return df['Symbol'].tolist()
 
 @st.cache
-def get_etf_holdings(etf_ticker, parse = False):
+def get_etf_holdings(etf_ticker):
+    ''' call etf4u.herokuapp.com
     '''
-    prototype function, doesn't work yet
-    '''
-    # TODO: need chromium webdriver
-    # see: https://medium.com/hackernoon/python-notebook-research-to-replicate-etf-using-free-data-ca9f88eb7349
-    # or scrap zacks: https://stackoverflow.com/questions/64908086/using-python-to-identify-etf-holdings
-    ref_url = f'https://www.barchart.com/etfs-funds/quotes/{etf_ticker}/constituents?page=all'
-    # tables = pd.read_html(ref_url, header = {'User-Agent': 'Mozilla/5.0'})
-    tables = pd.read_html(requests.get(ref_url,
-                                   headers={'User-agent': 'Mozilla/5.0'}).text,
-                      attrs={"class":"constituents"} if parse else None)
-    print(len(tables))
-    df = tables[2]
-    return df
+    ref_url = f'https://etf4u.herokuapp.com/query/{etf_ticker}'
+    try:
+        results = JsonReader(ref_url)
+    except:
+        print(f'get_etf_holdings: etf query for {etf_ticker} has no results')
+        return None
+    return list(results.keys())
 
 def showIndices(l_indices = STOCK_UNIVERSE, st_asset = st, as_df = False):
     with st_asset.expander('available indices'):
@@ -100,16 +95,27 @@ def get_members_info_df(asset, l_keys = ['symbol', 'longName']):
 
 def get_index_tickers(st_asset = st.sidebar):
     with st_asset:
+        b_etf = st.checkbox('load by ETF')
         l_indices = [d['index'] for d in STOCK_UNIVERSE]
-        idx = st.selectbox('Index', options = [''] + l_indices)
+        idx = st.text_input('Enter your reference ETF ticker') \
+            if b_etf else st.selectbox('Index', options = [''] + l_indices)
 
         if idx:
-            l_members = get_index_members(index_name = idx)
-            ref_security = JsonLookUp(STOCK_UNIVERSE,
-                            searchKey = 'index', searchVal = idx, resultKey = 'reference_security')
-            st.info(f'''
-                Found {len(l_members)} index members and reference security: {ref_security}
-            ''')
+            if b_etf:
+                l_members = get_etf_holdings(idx)
+                ref_security = None
+            else:
+                l_members = get_index_members(index_name = idx)
+                ref_security = JsonLookUp(STOCK_UNIVERSE,
+                            searchKey = 'index', searchVal = idx,
+                            resultKey = 'reference_security')
+
+            if not l_members:
+                st.error(f'nothing found for {idx}')
+                return ''
+            str_msg = f'Found {len(l_members)} index members '
+            str_msg += f' and reference security: {ref_security}' if ref_security else ''
+            st.info(str_msg)
             if st.checkbox('Load members to tickers field', value = False):
                 return ' '.join(l_members)
             else:
