@@ -11,6 +11,7 @@ from toolbox.data_utils import timed_lru_cache
 from toolbox.yf_utils import tickers_parser, get_stocks_ohlc
 from toolbox.ta_utils import market_classification, add_moving_average, add_ATR, \
                             add_MACD
+from toolbox.scrape_utils import get_proxies
 from strategies.macd_divergence import cluster_near_by_sign
 
 @timed_lru_cache(seconds = 12*60**2) # Cache Stock Data for 12 hours
@@ -32,7 +33,8 @@ def get_ticker_data_with_technicals(
     df = get_stocks_ohlc(tickers = tickers_parser(ticker),
             interval = interval,
             start_date = data_start_date,
-            end_date = trade_date
+            end_date = trade_date,
+            proxies = get_proxies()
             )
 
     for p in l_ma_periods:

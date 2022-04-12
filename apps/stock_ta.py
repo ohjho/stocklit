@@ -10,6 +10,7 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_auth import run_if_auth
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
+from toolbox.scrape_utils import get_proxies
 from toolbox.yf_utils import tickers_parser, get_stocks_ohlc, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
                             add_Scatter, add_Scatter_Event, add_color_event_ohlc
@@ -155,7 +156,10 @@ def Main():
 
         side_stock_info = get_stock_info_container(stock_obj.info, st_asset= st.sidebar)
 
-        data = get_stocks_ohlc(tickers, start_date = data_start_date, end_date = end_date, interval = interval)
+        data = get_stocks_ohlc(tickers,
+                start_date = data_start_date, end_date = end_date,
+                interval = interval,
+                proxies = get_proxies())
 
         with st.expander('Indicators'):
             l_col, m_col , r_col = st.columns(3)
