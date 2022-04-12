@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, random
 import yfinance as yf
 import pandas as pd
 from tqdm import tqdm
@@ -11,9 +11,9 @@ SESH = requests_cache.CachedSession('yfinance.cache')
 SESH.headers['User-agent'] = 'my-program/1.0'
 
 #Paths
-# cwdir = os.path.dirname(os.path.realpath(__file__))
-# sys.path.insert(1, os.path.join(cwdir, "../"))
-# from toolbox.data_utils import timed_lru_cache
+cwdir = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(1, os.path.join(cwdir, "../"))
+from toolbox.scrape_utils import update_session_proxy
 
 def valid_stock(stock_obj):
     '''
@@ -75,13 +75,16 @@ def get_stocks_data(tickers, session = SESH,
     }
 
 def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
-    start_date = None, end_date = None):
+    start_date = None, end_date = None, proxies = None):
     ''' Get Max OHLC (includes most current bar) for the given stocks
     '''
     interval_rule_dict = {'1wk': 'W', '1mo':'M'}
     assert interval in ['1d'] + list(interval_rule_dict.keys()), f'get_stocks_ohlc: interval must be either 1d or one of {interval_rule_dict.keys()}'
-    prices_df = yf.download(tickers = tickers, session = SESH,
-                    period = 'max', interval = '1d', group_by = 'ticker'
+    session = update_session_proxy(session, proxy = random.choice(proxies)) \
+            if proxies else session
+    prices_df = yf.download(tickers = tickers, session = session,
+                    period = 'max', interval = '1d', group_by = 'ticker',
+                    progress = False
                     )
     # Date Adjustment
     start_date = (BusinessDate(start_date) - '1d').to_date() if start_date else None
