@@ -3,21 +3,27 @@ import streamlit as st
 import streamlit_authenticator as stauth
 # streamlit_authenticator docs: https://github.com/mkhorasani/Streamlit-Authenticator
 # hased passed generated using stauth.hasher(['your_password']).generate()
-user_dict = [
+USER_DICT = [
 	{'name': 'Papa John', 'user':'jho', 'hashed_pass': '$2b$12$qsNIPRIuNJ26mt7Ap4OPh.Paum/y/pclpfAHT22DZ4O2ew1xBq0WC'}
 ]
-authenticator = stauth.Authenticate(
-	names = [u['name'] for u in user_dict],
-	usernames = [u['user'] for u in user_dict],
-	passwords = [u['hashed_pass'] for u in user_dict],
-	cookie_name = 'open_terminal_cookie', key = 'open_terminal',
-	cookie_expiry_days = 10
-	)
+AUTH = None
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_logo
+
+def get_authenticator(user_dict = USER_DICT):
+	global AUTH
+	if not AUTH:
+		AUTH = stauth.Authenticate(
+			names = [u['name'] for u in user_dict],
+			usernames = [u['user'] for u in user_dict],
+			passwords = [u['hashed_pass'] for u in user_dict],
+			cookie_name = 'open_terminal_cookie', key = 'open_terminal',
+			cookie_expiry_days = 10
+			)
+	return AUTH
 
 def get_auth_status(debug_mode = False):
 	''' return 1 for logged-in, -1 for failed login attempt, and 0 for no login attempt
@@ -49,17 +55,19 @@ def interactive_login(st_asset, b_show_logo = False,
 		st.info(str_msg)
 
 		# streamlit_authenticator v0.1.4 seems to not init properly
-		if 'authentication_status' not in st.session_state:
-			st.session_state['authentication_status'] = None
-		name, auth_status, username = authenticator.login('Login', 'main')
+		if get_auth_status() < 1:
+			authenticator = get_authenticator()
+			name, auth_status, username = authenticator.login('Login', 'main')
 
-		if auth_status == True:
+			if auth_status == True:
+				st.success(f'Welcome Back {st.session_state["name"]}!')
+			elif auth_status == False:
+				st.error(f'login attempt failed!')
+				if st.button('Try Again'):
+					st.session_state['authentication_status'] == None
+					st.session_state['name'] == None
+		else:
 			st.success(f'Welcome Back {st.session_state["name"]}!')
-		elif auth_status == False:
-			st.error(f'login attempt failed!')
-			if st.button('Try Again'):
-				st.session_state['authentication_status'] == None
-				st.session_state['name'] == None
 
 def run_if_auth(run_func):
 	def wrapper(*args, **kwargs):
