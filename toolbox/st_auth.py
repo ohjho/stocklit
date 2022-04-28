@@ -47,6 +47,10 @@ def interactive_login(st_asset, b_show_logo = False,
 		show_logo(st_asset = st_asset, width = 300)
 	with st_asset:
 		st.info(str_msg)
+
+		# streamlit_authenticator v0.1.4 seems to not init properly
+		if 'authentication_status' not in st.session_state:
+			st.session_state['authentication_status'] = None
 		name, auth_status, username = authenticator.login('Login', 'main')
 
 		if auth_status == True:
