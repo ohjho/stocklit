@@ -19,7 +19,7 @@ def get_proxy(debug_mode = False):
         return None
 
 @timed_lru_cache(seconds = 24*60**2) # cache for 24-hours
-def get_proxies(n=20, seconds_delay = 1):
+def get_proxies(n=10, seconds_delay = 1):
     proxies = []
     for i in tqdm(range(n), desc = 'getting proxies'):
         p = get_proxy()
