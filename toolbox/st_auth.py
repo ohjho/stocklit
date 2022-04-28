@@ -6,7 +6,7 @@ import streamlit_authenticator as stauth
 user_dict = [
 	{'name': 'Papa John', 'user':'jho', 'hashed_pass': '$2b$12$qsNIPRIuNJ26mt7Ap4OPh.Paum/y/pclpfAHT22DZ4O2ew1xBq0WC'}
 ]
-authenticator = stauth.authenticate(
+authenticator = stauth.Authenticate(
 	names = [u['name'] for u in user_dict],
 	usernames = [u['user'] for u in user_dict],
 	passwords = [u['hashed_pass'] for u in user_dict],
@@ -47,7 +47,7 @@ def interactive_login(st_asset, b_show_logo = False,
 		show_logo(st_asset = st_asset, width = 300)
 	with st_asset:
 		st.info(str_msg)
-		name, auth_status = authenticator.login('Login', 'main')
+		name, auth_status, username = authenticator.login('Login', 'main')
 
 		if auth_status == True:
 			st.success(f'Welcome Back {st.session_state["name"]}!')

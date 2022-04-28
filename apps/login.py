@@ -1,6 +1,5 @@
 import streamlit as st
 import os, sys
-import streamlit_authenticator as stauth
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
