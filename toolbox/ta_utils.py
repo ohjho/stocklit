@@ -265,6 +265,8 @@ def add_market_classification(df, period:int, col_name = 'market_classification'
     period_high = df['High'].rolling(period).max().shift()
     period_low = df['Low'].rolling(period).min().shift()
 
+    is_pH = (df['High'] == period_high)
+    is_pL = (df['Low'] == period_low)
     is_hh = period_high.rolling(period).apply(lambda ll: is_ascending(round_list(ll))).fillna(0).astype(bool)
     is_hl = period_low.rolling(period).apply(lambda ll: is_ascending(round_list(ll))).fillna(0).astype(bool)
     is_lh = period_high.rolling(period).apply(lambda ll: is_descending(round_list(ll))).fillna(0).astype(bool)
@@ -284,6 +286,10 @@ def add_market_classification(df, period:int, col_name = 'market_classification'
         df['higher_lows'] = is_hl
         df['lower_highs'] = is_lh
         df['lower_lows'] = is_ll
+
+        # useful for Darvas Box?
+        df['is_period_high'] = is_pH
+        df['is_period_low'] = is_pL
     return df
 
 def efficiency_ratio(df, period: int):
