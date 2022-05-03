@@ -6,7 +6,6 @@ import streamlit_authenticator as stauth
 USER_DICT = [
 	{'name': 'Papa John', 'user':'jho', 'hashed_pass': '$2b$12$qsNIPRIuNJ26mt7Ap4OPh.Paum/y/pclpfAHT22DZ4O2ew1xBq0WC'}
 ]
-AUTH = None
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
@@ -14,16 +13,13 @@ sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_utils import show_logo
 
 def get_authenticator(user_dict = USER_DICT):
-	global AUTH
-	if not AUTH:
-		AUTH = stauth.Authenticate(
+	return stauth.Authenticate(
 			names = [u['name'] for u in user_dict],
 			usernames = [u['user'] for u in user_dict],
 			passwords = [u['hashed_pass'] for u in user_dict],
 			cookie_name = 'open_terminal_cookie', key = 'open_terminal',
 			cookie_expiry_days = 10
 			)
-	return AUTH
 
 def get_auth_status(debug_mode = False):
 	''' return 1 for logged-in, -1 for failed login attempt, and 0 for no login attempt
