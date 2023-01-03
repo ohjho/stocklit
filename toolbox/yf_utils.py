@@ -82,7 +82,7 @@ def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
     assert interval in ['1d'] + list(interval_rule_dict.keys()), f'get_stocks_ohlc: interval must be either 1d or one of {interval_rule_dict.keys()}'
     session = update_session_proxy(session, proxy = random.choice(proxies)) \
             if proxies else session
-    prices_df = yf.download(tickers = tickers, session = session,
+    prices_df = yf.download(tickers = tickers, #session = session,
                     period = 'max', interval = '1d', group_by = 'ticker',
                     progress = False
                     )

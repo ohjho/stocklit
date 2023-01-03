@@ -10,7 +10,7 @@ cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
 from toolbox.st_auth import run_if_auth
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
-from toolbox.scrape_utils import get_proxies
+# from toolbox.scrape_utils import get_proxies
 from toolbox.yf_utils import tickers_parser, get_stocks_ohlc, valid_stock
 from toolbox.plotly_utils import plotly_ohlc_chart, get_moving_average_col, \
                             add_Scatter, add_Scatter_Event, add_color_event_ohlc
@@ -22,6 +22,7 @@ from strategies.macd_divergence import detect_macd_divergence
 from strategies.kangaroo_tails import detect_kangaroo_tails
 from strategies.vol_breakout import detect_vol_breakout, detect_volatility_contraction, \
                                 detect_low_vol_pullback, detect_VCP
+from strategies.buy_and_hold import daily_buy_and_hold, value_surfing
 
 def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
     container_obj = st_asset.expander(f'''
@@ -57,7 +58,10 @@ def add_event_col(df_price, df_events, event_col_name, ignore_time = True):
     return df_price
 
 @run_if_auth
-def show_beta_features(data, l_events_to_color, atr_period, l_col_to_scatter, st_asset = None):
+def show_beta_features(data, atr_period, interval,
+    l_events_to_color , l_col_to_scatter, st_asset = None):
+    ''' show ST interface and update l_events_to_color and l_col_to_scatter
+    '''
     st_asset = st_asset if st_asset else st.expander('beta features')
     with st_asset:
         l_col, m_col, r_col = st.columns(3)
@@ -105,6 +109,31 @@ def show_beta_features(data, l_events_to_color, atr_period, l_col_to_scatter, st
                             debug_mode = True
                             )
                 l_col_to_scatter.append({'column': 'stops', 'color': 'BlueViolet'})
+
+        with r_col:
+            avail_strategy = ['', 'value_surfing']
+            avail_strategy += ['buy_and_hold'] if interval == '1d' else []
+            vis_strategy = st.selectbox('Visualize Strategy',options = avail_strategy)
+            if vis_strategy == 'buy_and_hold':
+                st.write(f'#### Buy-and-Hold')
+                data = daily_buy_and_hold(data,
+                        atr_stop = st.number_input('ATR Stop', value =3),
+                        req_pos_macd = st.checkbox('Requires Positive MACD', help = "refers to MACD line (MACD Hist is Always required to be positive)")
+                        )
+                l_events_to_color.append({'column': 'trading_window', 'color': 'PeachPuff'})
+                l_events_to_color.append({'column': 'position', 'color': 'LightSteelBlue'})
+                # l_col_to_scatter.append({'column':'stop', 'color': 'BlueViolet'})
+            elif vis_strategy == 'value_surfing':
+                st.write(f'#### Value Surfing :ocean:')
+                data = value_surfing(data,
+                        stop_ATR = st.number_input('ATR Stop', value =1.0, help = 'relative to fast EMA; 0 will set stop to slow EMA'),
+                        exit_ATR = st.number_input('Exit ATR', value =3.0, help = 'relative to fast EMA'),
+                        ma_period_fast = st.number_input('Fast EMA', value = 11),
+                        ma_period_slow = st.number_input('Slow EMA', value = 22),
+                        min_atr_wide = st.number_input('Minimum Value Zone Width', value = 0.5, help = 'as multiple of ATR'),
+                        )
+                l_events_to_color.append({'column': 'position', 'color': 'LightSteelBlue'})
+                # l_col_to_scatter.append({'column':'stop', 'color': 'BlueViolet'})
 
 def Main():
     with st.sidebar.expander("GP"):
@@ -158,8 +187,8 @@ def Main():
 
         data = get_stocks_ohlc(tickers,
                 start_date = data_start_date, end_date = end_date,
-                interval = interval,
-                proxies = get_proxies())
+                interval = interval,)
+                # proxies = get_proxies())
 
         with st.expander('Indicators'):
             l_col, m_col , r_col = st.columns(3)
@@ -287,7 +316,8 @@ def Main():
 
         beta_events_to_plot, l_events_to_color, l_col_to_scatter = [], [], []
         show_beta_features(data = data, l_events_to_color=l_events_to_color,
-            l_col_to_scatter = l_col_to_scatter, atr_period = atr_period)
+            l_col_to_scatter = l_col_to_scatter,
+            atr_period = atr_period, interval = interval)
 
         if show_df:
             with st.expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):
