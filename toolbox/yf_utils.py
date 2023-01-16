@@ -55,11 +55,12 @@ def get_stocks_data(tickers, session = SESH,
     if yf_download_params['interval'] == '1wk':
         print(f'converting daily prices to weekly with internal method df_to_weekly() for {tickers}')
         yf_download_params['interval'] == '1d'
-        df_daily = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+        df_daily = yf.download(tickers = tickers, **yf_download_params)
         prices_df = df_to_weekly(df_daily = df_daily) if len(df_daily)>0 else df_daily
     else:
-        prices_df = yf.download(tickers = tickers, session = SESH, **yf_download_params)
+        prices_df = yf.download(tickers = tickers, **yf_download_params)
 
+    prices_df.index = prices_df.index.tz_localize(None)
     returns_df = prices_df['Adj Close'].pct_change()[1:]
     if len(tickers.split())> 1:
         col_with_returns = [col for col in returns_df.columns
@@ -87,7 +88,8 @@ def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
                     progress = False
                     )
     # Date Adjustment
-    prices_df.index = prices_df.index.tz_localize(None)
+    if prices_df.index.inferred_type == "datetime64":
+        prices_df.index = prices_df.index.tz_localize(None)
     start_date = (BusinessDate(start_date) - '1d').to_date() if start_date else None
     end_date = (BusinessDate(end_date) + '1d').to_date() if end_date else None
     prices_df = prices_df[prices_df.index > pd.Timestamp(start_date)] \
