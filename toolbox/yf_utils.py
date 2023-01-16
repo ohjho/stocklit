@@ -87,6 +87,7 @@ def get_stocks_ohlc(tickers, session = SESH, interval = '1d',
                     progress = False
                     )
     # Date Adjustment
+    prices_df.index = prices_df.index.tz_localize(None)
     start_date = (BusinessDate(start_date) - '1d').to_date() if start_date else None
     end_date = (BusinessDate(end_date) + '1d').to_date() if end_date else None
     prices_df = prices_df[prices_df.index > pd.Timestamp(start_date)] \
