@@ -24,14 +24,15 @@ from strategies.vol_breakout import detect_vol_breakout, detect_volatility_contr
                                 detect_low_vol_pullback, detect_VCP
 from strategies.buy_and_hold import daily_buy_and_hold, value_surfing
 
-def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
+def get_stock_info_container(stock_obj, st_asset = st.sidebar):
+    stock_info_obj = stock_obj.info
     container_obj = st_asset.expander(f'''
-                    {stock_info_obj['symbol']} : {stock_info_obj['longName']}
+                    {stock_obj.ticker} : {stock_info_obj['longName']}
                     ''', expanded = True)
     str_links = f'[:link:]({stock_info_obj["website"]}) ' \
                 if 'website' in stock_info_obj.keys() else ''
     str_links += f'[:newspaper:](https://www.reuters.com/companies/{stock_info_obj["symbol"]}/news)' \
-                if stock_info_obj['symbol'].endswith(('.HK', '.TO')) else ''
+                if stock_obj.ticker.endswith(('.HK', '.TO')) else ''
     container_obj.write(str_links)
     if 'shortRatio' in stock_info_obj.keys():
         container_obj.write(f'''
@@ -183,7 +184,7 @@ def Main():
             show_df = st.checkbox('show price dataframe', value = False)
             chart_size = st.number_input('Chart Size', value = 1200, min_value = 400, max_value = 1500, step = 50)
 
-        side_stock_info = get_stock_info_container(stock_obj.info, st_asset= st.sidebar)
+        side_stock_info = get_stock_info_container(stock_obj, st_asset= st.sidebar)
 
         data = get_stocks_ohlc(tickers,
                 start_date = data_start_date, end_date = end_date,
