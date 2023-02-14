@@ -24,7 +24,8 @@ def valid_stock(stock_obj):
 
         # since version 0.2.6 some attributes in info were removed
         # see https://github.com/ranaroussi/yfinance/issues/1349
-        return 'last_price' in stock_obj.fast_info.keys()
+        print(stock_obj.fast_info)
+        return 'lastPrice' in stock_obj.fast_info.keys()
     except:
         return False
 

@@ -123,10 +123,10 @@ def Main():
                 # this is a df issue on ST side:
                 # https://discuss.streamlit.io/t/after-upgrade-to-the-latest-version-now-this-error-id-showing-up-arrowinvalid/15794/24
                 # print(type(stock.sustainability))
-                print(stock.sustainability)
                 df_ = stock.sustainability
-                df_['Value'] = df_['Value'].astype(str)
-                st.write(df_)
+                if isinstance(df_, pd.DataFrame):
+                    df_['Value'] = df_['Value'].astype(str)
+                    st.write(df_)
 
             # show analysts recommendations
             with st.expander("Analysts Recommendations"):
