@@ -1,6 +1,5 @@
 import streamlit as st
 import os, sys
-st.set_page_config(layout = 'wide')
 
 from toolbox.st_utils import show_logo
 from apps.login import Main as login
@@ -16,8 +15,12 @@ from apps.stock_DVD_HK import Main as HK_DVD
 # add user tracking https://github.com/jrieke/streamlit-analytics
 
 def Main():
-	# st.set_option('deprecation.showPyplotGlobalUse', False)
-	# st.set_page_config(layout = 'wide')
+	st.set_page_config(
+		layout = 'wide',
+		page_title = 'Stocklit',
+		page_icon = 'asset/app_logo_gold.png',
+		initial_sidebar_state = 'expanded'
+		)
 	show_logo()
 	with st.sidebar.expander("stocklit"):
 		st.info(f'''

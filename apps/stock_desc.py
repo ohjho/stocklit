@@ -1,13 +1,14 @@
 import os, sys
 import streamlit as st
 import yfinance as yf
+# from yahooquery import Ticker
 import pandas as pd
 import plotly.express as px
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
-from toolbox.yf_utils import valid_stock, tickers_parser
+from toolbox.yf_utils import valid_stock, tickers_parser, get_stock_info, get_stock_financials
 from toolbox.plotly_utils import plotly_ohlc_chart
 
 def Main():
@@ -42,15 +43,18 @@ def Main():
         # 4. Download price DF
 
         with col1:
-            stock_info = stock.info
-            with st.expander(f'Stock Info for {stock_info["longName"]}'):
-                str_desc = f'[:link:]({stock_info["website"]}) ' \
-                            if 'website' in stock_info.keys() else ''
-                str_desc += stock_info["longBusinessSummary"] \
-                            if "longBusinessSummary" in stock_info.keys() else ":warning: Business Summary not available"
-                st.write(f'{str_desc}')
+            # migrate stock info to use yahooquery
+            stock_info = get_stock_info(ticker)
+            # yq_stock = Ticker(ticker)
+
+            with st.expander(f'Stock Info for {stock_info["price"]["longName"]}'):
                 if st.checkbox('show info JSON'):
-                    st.write(dict(stock_info))
+                    st.write(stock_info)
+                str_desc = f'[:link:]({stock_info["assetProfile"]["website"]}) ' \
+                            if 'website' in stock_info['assetProfile'].keys() else ''
+                str_desc += stock_info["assetProfile"]["longBusinessSummary"] \
+                            if "longBusinessSummary" in stock_info["assetProfile"].keys() else ":warning: Business Summary not available"
+                st.write(f'{str_desc}')
 
             df_all = stock.history(period = "max")
             with side_config:
@@ -73,10 +77,16 @@ def Main():
             with st.expander('Historical Prices'):
                 st.dataframe(df_all)
 
-            # High, Low, Open, Close, Volume, Adj Close
-            # trading_data = stock.trading_data
-            # st.dataframe(trading_data)
+            with st.expander('Financials'):
+                for i in ['income_statement', 'balance_sheet', 'cashflow']:
+                    st.subheader(i.replace('_',' '))
+                    df = get_stock_financials(ticker, i)
+                    st.write( df.astype(str))
 
+            with st.expander("Earnings"):
+                st.write( get_stock_financials(ticker, 'earnings'))
+
+        with col2:
             # show actions (dividends, splits)
             with st.expander("Corporate Actions"):
                 st.dataframe(stock.actions)
@@ -89,12 +99,6 @@ def Main():
             with st.expander("Splits"):
                 st.dataframe(stock.splits)
 
-        with col2:
-            # show financials
-            with st.expander("Financials"):
-                st.write(stock.financials)
-                # msft.quarterly_financials
-
             # show major holders
             with st.expander("Major Holders"):
                 st.dataframe(stock.major_holders)
@@ -103,42 +107,28 @@ def Main():
             with st.expander("Institutional Holders"):
                 st.dataframe(stock.institutional_holders)
 
-            # show balance sheet
-            with st.expander("Balance Sheet"):
-                st.write(stock.balance_sheet)
-                # msft.quarterly_balance_sheet
-
-            # show cashflow
-            with st.expander("Cashflow"):
-                st.write(stock.cashflow)
-                # msft.quarterly_cashflow
-
-            # show earnings
-            with st.expander("Earnings"):
-                st.write(stock.earnings)
-                # msft.quarterly_earnings
-
+            # TODO: get these sections from yahooquery
             # show sustainability
-            with st.expander("Sustainability"):
-                # this is a df issue on ST side:
-                # https://discuss.streamlit.io/t/after-upgrade-to-the-latest-version-now-this-error-id-showing-up-arrowinvalid/15794/24
-                # print(type(stock.sustainability))
-                df_ = stock.sustainability
-                if isinstance(df_, pd.DataFrame):
-                    df_['Value'] = df_['Value'].astype(str)
-                    st.write(df_)
+            # with st.expander("Sustainability"):
+            #     # this is a df issue on ST side:
+            #     # https://discuss.streamlit.io/t/after-upgrade-to-the-latest-version-now-this-error-id-showing-up-arrowinvalid/15794/24
+            #     # print(type(stock.sustainability))
+            #     df_ = stock.sustainability
+            #     if isinstance(df_, pd.DataFrame):
+            #         df_['Value'] = df_['Value'].astype(str)
+            #         st.write(df_)
 
             # show analysts recommendations
-            with st.expander("Analysts Recommendations"):
-                # TODO:
-                # 1. set "Firm" as index
-                # 2. turn datetime index as a col
-                st.dataframe(stock.recommendations)
+            # with st.expander("Analysts Recommendations"):
+            #     # TODO:
+            #     # 1. set "Firm" as index
+            #     # 2. turn datetime index as a col
+            #     st.dataframe(stock.recommendations)
 
             # show next event (earnings, etc)
-            with st.expander("Calendar"):
-                if isinstance(stock.calendar, pd.DataFrame):
-                    st.dataframe(stock.calendar.T)
+            # with st.expander("Calendar"):
+            #     if isinstance(stock.calendar, pd.DataFrame):
+            #         st.dataframe(stock.calendar.T)
 
             # show ISIN code - *experimental*
             # with st.expander("ISIN (experimental)"):

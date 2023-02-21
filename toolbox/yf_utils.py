@@ -1,5 +1,6 @@
 import os, sys, random
 import yfinance as yf
+from yahooquery import Ticker
 import pandas as pd
 from tqdm import tqdm
 from businessdate import BusinessDate
@@ -24,7 +25,7 @@ def valid_stock(stock_obj):
 
         # since version 0.2.6 some attributes in info were removed
         # see https://github.com/ranaroussi/yfinance/issues/1349
-        print(stock_obj.fast_info)
+        # print(stock_obj.fast_info)
         return 'lastPrice' in stock_obj.fast_info.keys()
     except:
         return False
@@ -128,6 +129,31 @@ def get_stocks_obj(tickers, session = SESH, tqdm_func = tqdm):
     # return [yf.Ticker(t)
     #     for t in tqdm_func(tickers.split(), desc = "Creating Ticker Object")
     #     ]
+
+def get_stock_info(ticker, l_modules = ['assetProfile', 'price', 'summaryDetail', 'summaryProfile', 'defaultKeyStatistics']):
+    ''' get stock info using yahooquery
+    '''
+    assert valid_stock(yf.Ticker(ticker)), f'{ticker} does not seem to be a valid stock ticker'
+    data = Ticker(ticker).get_modules(" ".join(l_modules)) if l_modules else Ticker(ticker).all_modules
+    return data[ticker]
+
+def get_stock_financials(ticker, type, b_transpose = True):
+    ''' get stock financials using [yahooquery](https://yahooquery.dpguthrie.com/guide/ticker/financials/)
+    '''
+    assert valid_stock(yf.Ticker(ticker)), f'{ticker} does not seem to be a valid stock ticker'
+    yq_ticker = Ticker(ticker)
+    financials_func_dict = {'balance_sheet': yq_ticker.balance_sheet,
+        'income_statement': yq_ticker.income_statement ,
+        'cashflow': yq_ticker.cash_flow
+        }
+    assert type in list(financials_func_dict.keys()) + ['earnings'], f'unknown type: {type}'
+    if type == 'earnings':
+        return yq_ticker.earnings[ticker]
+    else:
+        df = financials_func_dict[type]()
+        df['asOfDate'] = df['asOfDate'].dt.strftime('%Y-%m-%d')
+        df = df.set_index('asOfDate').T if b_transpose else df
+        return df
 
 def get_stocks_info(tickers, tqdm_func = tqdm):
     '''
