@@ -1,6 +1,7 @@
 import streamlit as st
 import os, sys
 
+# added this to change user temp dir to fix st cloud deployment issue; see https://github.com/ranaroussi/yfinance/issues/1700#issuecomment-1735414846
 import appdirs as ad
 ad.user_cache_dir = lambda *args: "/tmp"
 
