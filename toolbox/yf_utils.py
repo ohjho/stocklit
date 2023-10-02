@@ -134,10 +134,11 @@ def get_stock_info(ticker, l_modules = ['assetProfile', 'price', 'summaryDetail'
     ''' get stock info using yahooquery
     '''
     assert valid_stock(yf.Ticker(ticker)), f'{ticker} does not seem to be a valid stock ticker'
-    data = Ticker(ticker).get_modules(" ".join(l_modules)) if l_modules else Ticker(ticker).all_modules
-    return data[ticker]
+    # data = Ticker(ticker).get_modules(" ".join(l_modules)) if l_modules else Ticker(ticker).all_modules
+    # return data[ticker]
+    return yf.Ticker(ticker).info
 
-def get_stock_financials(ticker, type, b_transpose = True):
+def get_stock_financials(ticker, key, b_transpose = True):
     ''' get stock financials using [yahooquery](https://yahooquery.dpguthrie.com/guide/ticker/financials/)
     '''
     assert valid_stock(yf.Ticker(ticker)), f'{ticker} does not seem to be a valid stock ticker'
@@ -146,14 +147,17 @@ def get_stock_financials(ticker, type, b_transpose = True):
         'income_statement': yq_ticker.income_statement ,
         'cashflow': yq_ticker.cash_flow
         }
-    assert type in list(financials_func_dict.keys()) + ['earnings'], f'unknown type: {type}'
-    if type == 'earnings':
+    assert key in list(financials_func_dict.keys()) + ['earnings'], f'unknown key: {key}'
+    if key == 'earnings':
         return yq_ticker.earnings[ticker]
     else:
-        df = financials_func_dict[type]()
-        df['asOfDate'] = df['asOfDate'].dt.strftime('%Y-%m-%d')
-        df = df.set_index('asOfDate').T if b_transpose else df
-        return df
+        df = financials_func_dict[key]()
+        if type(df) == pd.DataFrame:
+            df['asOfDate'] = df['asOfDate'].dt.strftime('%Y-%m-%d')
+            df = df.set_index('asOfDate').T if b_transpose else df
+            return df
+        else:
+            return None
 
 def get_stocks_info(tickers, tqdm_func = tqdm):
     '''

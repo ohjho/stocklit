@@ -26,16 +26,18 @@ from strategies.buy_and_hold import daily_buy_and_hold, value_surfing
 
 def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
     container_obj = st_asset.expander(f'''
-                    {stock_info_obj['price']['symbol']} : {stock_info_obj['price']['longName']}
+                    {stock_info_obj['symbol']} : {stock_info_obj['longName']}
                     ''', expanded = True)
-    str_links = f'[:link:]({stock_info_obj["assetProfile"]["website"]}) ' \
-                if 'website' in stock_info_obj["assetProfile"].keys() else ''
-    str_links += f'[:newspaper:](https://www.reuters.com/companies/{stock_info_obj["price"]["symbol"]}/news)' \
-                if stock_info_obj['price']['symbol'].endswith(('.HK', '.TO')) else ''
+    str_links = ''
+    str_links = f'[:link:]({stock_info_obj["website"]}) ' \
+                if 'website' in stock_info_obj.keys() else str_links
+    str_links += f'[:newspaper:](https://www.reuters.com/companies/{stock_info_obj["symbol"]}/news)' \
+                if stock_info_obj['symbol'].endswith(('.HK', '.TO')) else ''
     container_obj.write(str_links)
-    if 'shortRatio' in stock_info_obj['defaultKeyStatistics'].keys():
+
+    if 'shortRatio' in stock_info_obj.keys():
         container_obj.write(f'''
-            [days to cover](https://finance.yahoo.com/news/short-ratio-stock-sentiment-indicator-210007353.html): `{stock_info_obj["defaultKeyStatistics"]["shortRatio"]}`
+            [days to cover](https://finance.yahoo.com/news/short-ratio-stock-sentiment-indicator-210007353.html): `{stock_info_obj["shortRatio"]}`
         ''')
     return container_obj
 
@@ -377,7 +379,7 @@ def Main():
                     target_col = c['column'], line_color = c['color'])
 
         show_plotly(fig, height = chart_size,
-            title = f"Price chart({interval}) for {tickers} : {stock_info_obj['price']['longName']}")
+            title = f"Price chart({interval}) for {tickers} : {stock_info_obj['longName']}")
 
 if __name__ == '__main__':
     Main()

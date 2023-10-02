@@ -3,7 +3,8 @@ import streamlit as st
 import yfinance as yf
 # from yahooquery import Ticker
 import pandas as pd
-import plotly.express as px
+import plotly.express as p
+from datetime import datetime
 
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
@@ -47,13 +48,13 @@ def Main():
             stock_info = get_stock_info(ticker)
             # yq_stock = Ticker(ticker)
 
-            with st.expander(f'Stock Info for {stock_info["price"]["longName"]}'):
+            with st.expander(f'Stock Info for {stock_info["longName"]}'):
                 if st.checkbox('show info JSON'):
                     st.write(stock_info)
-                str_desc = f'[:link:]({stock_info["assetProfile"]["website"]}) ' \
-                            if 'website' in stock_info['assetProfile'].keys() else ''
-                str_desc += stock_info["assetProfile"]["longBusinessSummary"] \
-                            if "longBusinessSummary" in stock_info["assetProfile"].keys() else ":warning: Business Summary not available"
+                str_desc = f'[:link:]({stock_info["website"]}) ' \
+                            if 'website' in stock_info.keys() else ''
+                str_desc += stock_info["longBusinessSummary"] \
+                            if "longBusinessSummary" in stock_info.keys() else ":warning: Business Summary not available"
                 st.write(f'{str_desc}')
 
             df_all = stock.history(period = "max")
@@ -78,13 +79,23 @@ def Main():
                 st.dataframe(df_all)
 
             with st.expander('Financials'):
-                for i in ['income_statement', 'balance_sheet', 'cashflow']:
-                    st.subheader(i.replace('_',' '))
-                    df = get_stock_financials(ticker, i)
-                    st.write( df.astype(str))
-
-            with st.expander("Earnings"):
-                st.write( get_stock_financials(ticker, 'earnings'))
+                financials = ['income_statement', 'balance_sheet', 'cashflow']
+                tabs = st.tabs(financials)
+                for i in financials:
+                    i_tab = tabs[financials.index(i)]
+                    i_tab.subheader(i.replace('_',' '))
+                    df = get_stock_financials(ticker, i, b_transpose = False)
+                    i_tab.write(
+                        f'{i} is not available' if type(df) == type(None) else df.astype(str)
+                        )
+            with st.expander('News'):
+                news_dict = stock.news
+                # st.write(news_dict)
+                for n in news_dict:
+                    dt = datetime.fromtimestamp(n["providerPublishTime"])
+                    st.write(f'`{dt}` {n["publisher"]}: [{n["title"]}]({n["link"]})')
+            # with st.expander("Earnings"):
+            #     st.write( get_stock_financials(ticker, 'earnings'))
 
         with col2:
             # show actions (dividends, splits)
@@ -126,6 +137,8 @@ def Main():
             #     st.dataframe(stock.recommendations)
 
             # show next event (earnings, etc)
+            with st.expander('Earning Dates'):
+                st.write(stock.earnings_dates)
             # with st.expander("Calendar"):
             #     if isinstance(stock.calendar, pd.DataFrame):
             #         st.dataframe(stock.calendar.T)
