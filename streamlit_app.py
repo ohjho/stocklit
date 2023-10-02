@@ -1,6 +1,9 @@
 import streamlit as st
 import os, sys
 
+import appdirs as ad
+ad.user_cache_dir = lambda *args: "/tmp"
+
 from toolbox.st_utils import show_logo
 from apps.login import Main as login
 from apps.stock_desc import Main as Desc
