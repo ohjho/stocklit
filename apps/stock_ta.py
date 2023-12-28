@@ -8,7 +8,7 @@ from businessdate import BusinessDate
 #Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
-from toolbox.st_auth import run_if_auth
+from toolbox.st_auth import run_if_auth_sliently
 from toolbox.st_utils import show_plotly, plotly_hist_draw_hline
 # from toolbox.scrape_utils import get_proxies
 from toolbox.yf_utils import tickers_parser, get_stocks_ohlc, valid_stock, get_stock_info
@@ -59,7 +59,7 @@ def add_event_col(df_price, df_events, event_col_name, ignore_time = True):
         df_price[event_col_name] = [d in event_dates for d in df_price.index.tolist()]
     return df_price
 
-@run_if_auth
+@run_if_auth_sliently
 def show_beta_features(data, atr_period, interval,
     l_events_to_color , l_col_to_scatter, st_asset = None):
     ''' show ST interface and update l_events_to_color and l_col_to_scatter
@@ -154,13 +154,13 @@ def Main():
         if st.checkbox('pick start date'):
             start_date = st.date_input('Period Start Date', value = today - datetime.timedelta(days = 365))
         else:
-            tenor = st.text_input('Period', value = '6m')
+            tenor = st.text_input('Period', value = '2y') # was 6m
             start_date = (BusinessDate(end_date) - tenor).to_date()
             st.info(f'period start date: {start_date}')
 
         # TODO: allow manual handling of data_start_date
         # l_interval = ['1d','1wk','1m', '2m','5m','15m','30m','60m','90m','1h','5d','1mo','3mo']
-        interval = st.selectbox('interval', options = ['1d', '1wk', '1mo'])
+        interval = st.selectbox('interval', options = ['1wk', '1d', '1mo'])
         is_intraday = interval.endswith(('m','h'))
         data_start_date = start_date if is_intraday else \
                         (BusinessDate(start_date) - "1y").to_date()
@@ -193,7 +193,10 @@ def Main():
                 interval = interval,)
                 # proxies = get_proxies())
 
-        with st.expander('Indicators'):
+        tab_indicators, tab_advanced, tab_beta = st.expander(
+            "indicators", expanded = False
+            ).tabs(['Indicators', 'advanced settings', 'beta features'])
+        with tab_indicators:
             l_col, m_col , r_col = st.columns(3)
             with l_col:
                 st.write('#### the moving averages')
@@ -255,7 +258,7 @@ def Main():
                 data = add_ADX(data, period = st.number_input("ADX period", value = 13)) \
                         if do_ADX else data
 
-        with st.expander('advanced settings'):
+        with tab_advanced:
             l_col, m_col , r_col = st.columns(3)
             with l_col:
                 st.write('#### Market Type Classification')
@@ -320,7 +323,7 @@ def Main():
         beta_events_to_plot, l_events_to_color, l_col_to_scatter = [], [], []
         show_beta_features(data = data, l_events_to_color=l_events_to_color,
             l_col_to_scatter = l_col_to_scatter,
-            atr_period = atr_period, interval = interval)
+            atr_period = atr_period, interval = interval, st_asset = tab_beta)
 
         if show_df:
             with st.expander(f'raw data (last updated: {data.index[-1].strftime("%c")})'):

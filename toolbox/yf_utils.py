@@ -21,12 +21,12 @@ def valid_stock(stock_obj):
     Check if a stock_obj created by yf.Ticker has data
     '''
     try:
-        # return 'symbol' in stock_obj.info.keys()
+        return 'longName' in stock_obj.info.keys()
 
         # since version 0.2.6 some attributes in info were removed
         # see https://github.com/ranaroussi/yfinance/issues/1349
         # print(stock_obj.fast_info)
-        return 'lastPrice' in stock_obj.fast_info.keys()
+        # return 'symbol' in stock_obj.fast_info.keys()
     except:
         return False
 

@@ -74,6 +74,15 @@ def run_if_auth(run_func):
 			st.warning('beta feature disabled. to enable, please login.')
 	return wrapper
 
+def run_if_auth_sliently(run_func):
+	def wrapper(*args, **kwargs):
+		auth_status = get_auth_status()
+		if auth_status ==1:
+			return run_func(*args, **kwargs)
+		else:
+			return None
+	return wrapper
+
 def auth_before_run(run_func):
 	def wrapper(*args, **kwargs):
 		auth_status = get_auth_status()
