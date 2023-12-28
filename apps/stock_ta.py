@@ -195,7 +195,7 @@ def Main():
 
         tab_indicators, tab_advanced, tab_beta = st.expander(
             "indicators", expanded = False
-            ).tabs(['Indicators', 'advanced settings', 'beta features'])
+            ).tabs(['basics', 'advanced', 'beta features'])
         with tab_indicators:
             l_col, m_col , r_col = st.columns(3)
             with l_col:
