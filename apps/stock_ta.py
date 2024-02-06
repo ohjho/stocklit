@@ -41,11 +41,17 @@ def get_stock_info_container(stock_info_obj, st_asset = st.sidebar):
         ''')
     return container_obj
 
-def add_div_col(df_price, df_div, div_col_name = 'ex-dividend'):
+def add_div_col(df_price, df_div, div_col_name = 'ex-dividend', interval = '1d'):
+    interval_period_map = {'1d': None, '1wk': 'w', '1mo': 'm'}
+    sample_period = interval_period_map[interval]
     # assume both df has date index
     if len(df_div) > 0:
-        ex_div_dates = df_div.index.tolist()
-        df_price[div_col_name] = [d in ex_div_dates for d in df_price.index.tolist()]
+        # ex_div_dates = df_div.index.tz_convert(None)
+        # assign to start of the period if not daily (ref: https://stackoverflow.com/a/35613515)
+        ex_div_dates = df_div.index.to_period(sample_period).start_time.date.tolist(
+            ) if sample_period else df_div.index.date.tolist() # remove TZ and time
+        df_price_dates = df_price.index.date.tolist() # remove TZ and time
+        df_price[div_col_name] = [d in ex_div_dates for d in df_price_dates]
     return df_price
 
 def add_event_col(df_price, df_events, event_col_name, ignore_time = True):
@@ -271,9 +277,9 @@ def Main():
                 st.write('#### Events')
                 do_div = st.checkbox('show ex-dividend dates')
                 if do_div:
-                    data = add_div_col(df_price = data, df_div = stock_obj.dividends)
+                    data = add_div_col(df_price = data, df_div = stock_obj.dividends, interval = interval )
                     side_stock_info.write(
-                        stock_obj.dividends[stock_obj.dividends.index > pd.Timestamp(start_date)]
+                        stock_obj.dividends[stock_obj.dividends.index.tz_convert(None) > pd.Timestamp(start_date).to_datetime64()]
                         )
                 do_earnings = st.checkbox('show earning dates')
                 if do_earnings and isinstance(stock_obj.calendar, pd.DataFrame):
