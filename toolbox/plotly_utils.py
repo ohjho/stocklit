@@ -5,7 +5,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
-print(f"{pio.templates}")
+# print(f"{pio.templates}")
 
 
 def get_moving_average_col(df_columns):

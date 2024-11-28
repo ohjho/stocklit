@@ -1,9 +1,7 @@
 import streamlit as st
 import os, sys
-
-# added this to change user temp dir to fix st cloud deployment issue; see https://github.com/ranaroussi/yfinance/issues/1700#issuecomment-1735414846
-# import appdirs as ad
-# ad.user_cache_dir = lambda *args: "/tmp"0
+import yfinance as yf
+import plotly
 
 from toolbox.st_utils import show_logo
 from apps.login import Main as login
@@ -34,6 +32,11 @@ def Main():
 
 		*	[project page](https://github.com/ohjho/stocklit)
 		*	[issues tracking](https://github.com/ohjho/stocklit/issues)
+
+
+		streamlit version: `{st.__version__}`\n
+		yfinance version: `{yf.__version__}`\n
+		plotly version: `{plotly.__version__}`
 		"""
         )
 

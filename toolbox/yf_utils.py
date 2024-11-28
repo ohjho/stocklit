@@ -112,7 +112,7 @@ def get_stocks_ohlc(
         progress=False,
     )
     assert len(prices_df) > 0, f"no price data found for {tickers}"
-    print(prices_df)
+    print(prices_df.head())
     # Date Adjustment
     if prices_df.index.inferred_type == "datetime64":
         prices_df.index = prices_df.index.tz_localize(None)
