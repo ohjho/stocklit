@@ -12,6 +12,6 @@ you might want to checkout [TradingView](https://www.tradingview.com/)
 
 It's deployed using [streamlit share](https://www.streamlit.io/sharing):
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/ohjho/stocklit)
-[![python3.12 badge](https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=fff)]
+![python3.12 badge](https://img.shields.io/badge/python-3.12-blue?logo=python&logoColor=fff)
 
 [![stocklit Screenshoot](asset/app_screenshot.png)](https://share.streamlit.io/ohjho/stocklit)
