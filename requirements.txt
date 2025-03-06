@@ -12,7 +12,7 @@ openpyxl==3.0.7
 # mkt data packages
 requests>=2.28.2
 urllib3>=1.26.14
-yfinance==0.2.40
+yfinance~=0.2.54
 yahooquery>=2.3.0
 requests-cache==0.6.3
 businessdate==0.5

@@ -346,7 +346,9 @@ def Main():
                 slow = st.number_input("slow", value=26)
                 signal = st.number_input("signal", value=9)
                 if do_MACD:
-                    data = add_MACD(data, fast=fast, slow=slow, signal=signal)
+                    data = add_MACD(
+                        data, fast=fast, slow=slow, signal=signal, price_col="Close"
+                    )
             with r_col:
                 st.write("#### oscillator")
                 do_RSI = st.checkbox("RSI")
