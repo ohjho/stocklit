@@ -113,6 +113,11 @@ def get_stocks_ohlc(
     )
     assert len(prices_df) > 0, f"no price data found for {tickers}"
 
+    # add multi-level index column handling
+    if prices_df.columns.nlevels > 1:
+        if not isinstance(tickers, list):
+            prices_df = prices_df[tickers.upper()]
+
     # Date Adjustment
     if prices_df.index.inferred_type == "datetime64":
         prices_df.index = prices_df.index.tz_localize(None)
@@ -231,7 +236,7 @@ def df_aggregate(
         "High": "max",
         "Low": "min",
         "Close": "last",
-        "Adj Close": "last",
+        # "Adj Close": "last",
         "Volume": "sum",
     },
 ):
@@ -265,7 +270,7 @@ def df_to_weekly(
         "High": "max",
         "Low": "min",
         "Close": "last",
-        "Adj Close": "last",
+        # "Adj Close": "last",
         "Volume": "sum",
     },
 ):
