@@ -1,23 +1,24 @@
-import os, sys
-import streamlit as st
-import yfinance as yf
+import os
+import sys
+from datetime import datetime
 
 # from yahooquery import Ticker
 import pandas as pd
 import plotly.express as p
-from datetime import datetime
+import streamlit as st
+import yfinance as yf
 
 # Paths
 cwdir = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(1, os.path.join(cwdir, "../"))
-from toolbox.yf_utils import (
-    valid_stock,
-    tickers_parser,
-    get_stock_info,
-    get_stock_financials,
-)
 from toolbox.plotly_utils import plotly_ohlc_chart
 from toolbox.st_utils import show_plotly
+from toolbox.yf_utils import (
+    get_stock_financials,
+    get_stock_info,
+    tickers_parser,
+    valid_stock,
+)
 
 
 def Main():
